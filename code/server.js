@@ -201,7 +201,7 @@ function processPost( request, response ) {
 				if ( users[ String(uid) ].activeCount == 1 )
 					postSysMsg( 'userConnected', users[ String(uid) ].name );
 			} else {
-				response.writeHead( 201, {
+				response.writeHead( 221, {
 					'Content-Type': 'text/plain'
 					}
 				);

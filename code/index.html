@@ -7,6 +7,7 @@
   <script type="text/javascript" src="date.format.js"></script>
   <script type="text/javascript">
 	var chatSession = { id: 0, name: '' };
+	var server_host = '';
 	
 	function loadSession() {
 		var prefix = 'ambichat_';
@@ -37,13 +38,13 @@
 			chatSession.name = document.getElementById('name').value;
 		
 		var xhr = new XMLHttpRequest();		
-		xhr.open('POST', 'server/auth?id=' + encodeURIComponent( chatSession.id ) +
+		xhr.open('POST', server_host + 'server/auth?id=' + encodeURIComponent( chatSession.id ) +
 			'&name=' + encodeURIComponent( chatSession.name ), true);
 		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
 				if ( xhr.status == 200 ) authOk( xhr.responseText );
-				else noAuth( xhr.responseText );
+				else if ( xhr.status != 0 ) noAuth( xhr.responseText );
 			}
 		};
 		xhr.send(null);
@@ -95,7 +96,7 @@
 		
 		// Only start listener after we authorized
 		var msgs = document.getElementById('msgs'),
-			es = new EventSource('server/?id=' + chatSession.id );
+			es = new EventSource( server_host + 'server/?id=' + chatSession.id );
 			
 		// Chat message listener
 		es.addEventListener('message', function (event) {
@@ -159,7 +160,7 @@
 		lastSentMessageId = Infinity;
 
 		var xhr = new XMLHttpRequest();
-		xhr.open('POST', 'server/?id=' + encodeURIComponent( chatSession.id ), true);
+		xhr.open('POST', server_host + 'server/?id=' + encodeURIComponent( chatSession.id ), true);
 		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
