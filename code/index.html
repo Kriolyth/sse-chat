@@ -65,32 +65,38 @@
 		document.getElementById( 'chat' ).style.visibility = 'hidden';
 	}
 
-    function now() {
-      var performance = window.performance;
-      if (performance && performance.now) {
-        return performance.now();
-      }
-      if (performance && performance.webkitNow) {
-        return performance.webkitNow();
-      }
-      return new Date().getTime();
-    }
+	function encodeFormData(data) {
+		if(!data) return false;
+		var pairs = [],
+			regexp = /%20/g;
 
-    var lastSendedMessageId = Infinity,
-        lastEventId = null,
-        lastSentTime = null;
+		for(var name in data) {
+			var value = data[name].toString(),
+			pair = encodeURIComponent(name).replace(regexp, '+') + '=' + encodeURIComponent(value).replace(regexp, '+');
+
+			pairs.push(pair);
+		}
+
+		return pairs.join('&');
+	}
+
+    var lastSentMessageId = Infinity,
+        lastEventId = null;
 
     function checkId() {
-      if (lastEventId >= lastSendedMessageId) {
+      if (lastEventId >= lastSentMessageId) {
         lastSentMessageId = Infinity;
-        var msgs = document.getElementById('msgs');
       }
     }
 	
 	function startListener() {
 		if ( 0 == chatSession.id ) return false;
+		
+		// Only start listener after we authorized
 		var msgs = document.getElementById('msgs'),
 			es = new EventSource('server/?id=' + chatSession.id );
+			
+		// Chat message listener
 		es.addEventListener('message', function (event) {
 				lastEventId = +event.lastEventId;
 				var div = document.createElement('div'),
@@ -110,19 +116,22 @@
 				
 				var msg_text = msg.msg;
 				switch( msg.msgType ) {
+					// System messages
 					case -1: msg_text = 'В чат заходит ' + msg_text; break;
 					case -2: msg_text = 'Чат покидает ' + msg_text; break;
 				}
 				text.innerHTML = linkify( msg_text.replace( /\n/g, '<br/>' ) );
 				text.className = 'text';
 				div.appendChild( text );
+				
 				div.className = msg.owner;
-				//msgs.insertBefore(div, msgs.firstChild);
 				msgs.appendChild( div );
 				div.scrollIntoView();
 				checkId();
 			}
 		);
+		
+		// TODO: add event listeners (such as contact list update)
 	}
 
     function onDomReady() {
@@ -130,8 +139,10 @@
 		
 		setTimeout( function() {
 			document.getElementById('message').onkeypress = function() {
-				if ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey )
-					{ return post(); }
+				if ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey ) { 
+					// send with "Enter", newline with "Shift+Enter"
+						return post(); 
+					}
 				};
 			}, 10);
     }
@@ -143,14 +154,11 @@
 		if (!message) {
 			return false;
 		}
-		document.getElementById('message').value = '';
 
-		lastSentTime = now();
 		lastSentMessageId = Infinity;
 
 		var xhr = new XMLHttpRequest();
-		xhr.open('POST', 'server/?id=' + encodeURIComponent( chatSession.id ) + '&' +
-			'message=' + encodeURIComponent(message), true);
+		xhr.open('POST', 'server/?id=' + encodeURIComponent( chatSession.id ), true);
 		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
@@ -158,11 +166,14 @@
 				checkId();
 			}
 		};
-		xhr.send(null);
+		// Message text is sent in POST body
+		xhr.send( encodeFormData( { message: message } ) );
 
+		document.getElementById('message').value = '';
 		return false;
     }
 	
+	// convert links to clickable links
 	function linkify(text) {  
 		var urlRegex =/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;  
 		return text.replace(urlRegex, function(url) {  

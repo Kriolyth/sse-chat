@@ -16,7 +16,7 @@ process.on('uncaughtException', function (e) {
 
 var emitter = new EventEmitter();
 var history = [];
-var servicemsg = [];
+// var servicemsg = [];
 var heartbeatTimeout = 9000;
 var firstId = Number(new Date());
 
@@ -50,18 +50,19 @@ function eventStream(request, response, uid) {
 		}
 		
 		// Send service messages, if any
-		for ( var i in servicemsg ) {
+		/* for ( var i in servicemsg ) {
 			var msg = servicemsg[i];
 			response.write('event: ' + msg.event + '\n' );
 			response.write('data: ' + JSON.stringify(msg) + '\n\n');
 		}
-		servicemsg = [];
+		servicemsg = []; */
 		
 		response.write(':\n');
 	}
 
   function onRequestEnd() {
-    post = querystring.parse(post);// failure ???
+    //post = querystring.parse(post);// failure ???
+	post = request.decodedBody;
     response.writeHead(200, {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
@@ -104,6 +105,7 @@ function eventStream(request, response, uid) {
   });
 
   request.addListener('end', onRequestEnd);
+  onRequestEnd();
   response.socket.setTimeout(0); // see http://contourline.wordpress.com/2011/03/30/preventing-server-timeout-in-node-js/
 }
 
@@ -120,95 +122,147 @@ function postSysMsg( msgType, text )
 	emitter.emit( 'message' );
 }
 
-users[ '-1' ] = { name: 'System', activeCount: 1 };
+function processGet( request, response ) {
 
-http.createServer(function (request, response) {
+
+
+}
+
+function processPost( request, response ) {
 	var url = request.url,
 		query = require('url').parse(url, true).query,
-		time,
 		data;
+	// POST request
+	
+	//console.log( 'POST: ' + url );
+    var fullBody = '';
+    
+    function dataCollect(chunk) {
+      // append the current chunk of data to the fullBody variable
+      fullBody += chunk.toString();
+    };
+    function dataReceived() {
+		request.removeListener( 'data', dataCollect );
+		request.removeListener( 'end', dataReceived );
+    
+		// request ended -> do something with the data
+		//res.writeHead(200, "OK", {'Content-Type': 'text/html'});
 
-	if ( /^\/auth\?/.test(url) && query.name ) {
-		var uid = parseInt( query.id );
-		var success = false;
-		var qname = query.name.trim();
-		console.log( 'Auth request: id=' + uid + ', name=' + qname );
-		if ( 0 >= uid || users[ String(uid) ] == undefined ) {
-			// search for an old user with such name
-			var found;
-			for ( var i in users ) {
-				if ( users[i].name == qname ) {
-					found = i;
+		// parse the received body data
+		var decodedBody = querystring.parse(fullBody);
+		//console.log(JSON.stringify(decodedBody) + " <-Posted Data Test");
+		request.decodedBody = decodedBody;
+
+		// Auth request		
+		if ( /^\/auth\?/.test(url) && query.name ) {
+			var uid = parseInt( query.id );
+			var success = false;
+			var qname = query.name.trim();
+			console.log( 'Auth request: id=' + uid + ', name=' + qname );
+			if ( 0 >= uid || users[ String(uid) ] == undefined ) {
+				// search for an old user with such name
+				var found;
+				for ( var i in users ) {
+					if ( users[i].name == qname ) {
+						found = i;
+					}
+				}
+				
+				if ( found == undefined ) {			
+					uid = Math.floor( Math.random() * 1677214 ) + 2;
+					users[ String(uid) ] = { name: qname, activeCount: 1 };
+					console.log( 'New UID ' + uid );
+					success = true;
+				} else if ( 0 == users[found].activeCount ) {
+					users[ found ].activeCount++;
+					console.log( 'UID takeover ' + uid );
+					success = true;
+				} else {
+					console.log( 'UID takeover failed, active user ' + found );
+					success = false;
 				}
 			}
-			
-			if ( found == undefined ) {			
-				uid = Math.floor( Math.random() * 1677214 ) + 2;
-				users[ String(uid) ] = { name: qname, activeCount: 1 };
-				console.log( 'New UID ' + uid );
+			else if ( qname == users[ String(uid) ].name ) {
+				console.log( 'Existing user with UID ' + uid );
+				users[ String(uid) ].activeCount++;
 				success = true;
-			} else if ( 0 == users[found].activeCount ) {
-				users[ found ].activeCount++;
-				console.log( 'UID takeover ' + uid );
-				success = true;
-			} else {
-				console.log( 'UID takeover failed, active user ' + found );
+			}
+			else {
+				console.log( 'Failed logon with UID ' + uid );
 				success = false;
 			}
-		}
-		else if ( qname == users[ String(uid) ].name ) {
-			console.log( 'Existing user with UID ' + uid );
-			users[ String(uid) ].activeCount++;
-			success = true;
-		}
-		else {
-			console.log( 'Failed logon with UID ' + uid );
-			success = false;
-		}
-		
-		if ( success ) {
+			
+			if ( success ) {
+				response.writeHead( 200, {
+					'Content-Type': 'text/plain'
+					}
+				);
+				response.end( String(uid) );
+				if ( users[ String(uid) ].activeCount == 1 )
+					postSysMsg( 'userConnected', users[ String(uid) ].name );
+			} else {
+				response.writeHead( 201, {
+					'Content-Type': 'text/plain'
+					}
+				);
+				response.end( 'Auth failed' );
+			}
+			return;
+		} else if ( /^\/\?/.test(url) && decodedBody && decodedBody.message && query.id ) {
+			var time = new Date();
+			var msgType = 1;
+			if ( decodedBody.msgType && decodedBody.msgType > 0 )
+				msgType = decodedBody.msgType;
+			data = {
+				msgType: msgType,
+				uid: query.id,
+				ts: time.getTime(), 
+				msg: decodedBody.message 
+			};
 			response.writeHead( 200, {
 				'Content-Type': 'text/plain'
 				}
 			);
-			response.end( String(uid) );
-			if ( users[ String(uid) ].activeCount == 1 )
-				postSysMsg( 'userConnected', users[ String(uid) ].name );
-		} else {
-			response.writeHead( 201, {
-				'Content-Type': 'text/plain'
-				}
-			);
-			response.end( 'Auth failed' );
-		}
-		return;
-	}
-	else if ( /^\/\?/.test(url) && query.message && query.id ) {
-		time = new Date();
-		var msgType = 1;
-		if ( query.msgType && query.msgType > 0 )
-			msgType = query.msgType;
-		data = {
-			msgType: msgType,
-			uid: query.id,
-			ts: time.getTime(), 
-			msg: query.message 
-		};
-		response.writeHead( 200, {
-			'Content-Type': 'text/plain'
-			}
-		);
-		response.end(String(history.push(data)));
-		emitter.emit('message');
-		return;
-	}
-	console.log((new Date()).toISOString() + ': ' + url);
+			response.end(String(history.push(data)));
+			emitter.emit('message');
+			
+			//console.log( 'Message received: ' + decodedBody.message );
+			return;
+		} else if ( /^\/\?id=\d+/.test(url) ) {				
+			var id = parseInt( /\?id=(\d+)/.exec( url )[1] );
 
-	if ( /^\/\?id=\d+/.test(url) ) {
-		var id = parseInt( /\?id=(\d+)/.exec( url )[1] );
-		console.log( 'new Stream: ' + id );
-		if ( 0 != id )
-			eventStream(request, response, id);
+			if ( 0 != id && users[String(id)] ) {
+				console.log( 'New stream: ' + id );
+				//emitter.emit('message');
+				eventStream(request, response, id);			
+			}
+		} else {
+			response.writeHead( 220, {
+				'Content-Type': 'text/plain'
+			} );
+			response.end();
+		}
+    };
+
+	request.addListener('data', dataCollect );
+	request.addListener('end', dataReceived );
+
+	
+}
+
+
+users[ '-1' ] = { name: 'System', activeCount: 1 };
+
+http.createServer(function (request, response) {
+
+	if ( request.method == 'POST' ) {
+		processPost( request, response );
+	}	
+	else //if ( request.method == 'GET' )
+	{
+		console.log( 'Request: ' + request.method );
+		processGet( request, response );
 	}
+
 	
 }).listen(PORT, '127.0.0.1');
