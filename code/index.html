@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <title>Help on help</title>
   <script type="text/javascript" src="eventsource.js"></script>
+  <script type="text/javascript" src="date.format.js"></script>
   <script type="text/javascript">
 	var chatSession = { id: 0, name: '' };
 	
@@ -107,7 +108,7 @@
 
 				timestamp.className = 'timestamp';
 				var ts = new Date(msg.ts);
-				timestamp.innerHTML = ts.getHours() + ':' + ts.getMinutes();
+				timestamp.innerHTML = ts.format('HH:MM');
 				div.appendChild( timestamp );
 				
 				author.innerHTML = msg.author;
