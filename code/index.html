@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Help on help</title>
+  <script type="text/javascript" src="eventsource.js"></script>
+  <script type="text/javascript">
+	var chatSession = { id: 0, name: '' };
+	
+	function loadSession() {
+		var prefix = 'ambichat_';
+		var id = localStorage.getItem( prefix + 'id' );
+		var name = localStorage.getItem( prefix + 'name' );
+		if ( name && name != '' && id && id != '' ) {
+			chatSession.id = parseInt( id );
+			chatSession.name = name;
+			return true;
+		}
+		return false;
+	}
+	
+	function saveSession() {
+		var prefix = 'ambichat_';
+		if ( chatSession.name != '' && chatSession.id != 0 ) {
+			localStorage.setItem( prefix + 'id',   chatSession.id );
+			localStorage.setItem( prefix + 'name', chatSession.name );
+		}
+	}
+	
+	function clearSession() {
+		localStorage.clear();
+	}
+	
+	function auth() {
+		if ( 0 == chatSession.id ) 
+			chatSession.name = document.getElementById('name').value;
+		
+		var xhr = new XMLHttpRequest();		
+		xhr.open('POST', 'server/auth?id=' + encodeURIComponent( chatSession.id ) +
+			'&name=' + encodeURIComponent( chatSession.name ), true);
+		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+				if ( xhr.status == 200 ) authOk( xhr.responseText );
+				else noAuth( xhr.responseText );
+			}
+		};
+		xhr.send(null);
+		
+		return false;
+	}
+	
+	function authOk( response ) {
+		chatSession.id = parseInt( response );
+		if ( !chatSession.id ) return;
+		document.getElementById( 'login' ).style.visibility = 'hidden';
+		document.getElementById( 'chat' ).style.visibility = 'visible';
+		
+		saveSession();
+		startListener();
+	}
+	function noAuth( response ) {
+		chatSession.id = 0;
+		document.getElementById( 'login' ).style.visibility = 'visible';
+		document.getElementById( 'chat' ).style.visibility = 'hidden';
+	}
+
+    function now() {
+      var performance = window.performance;
+      if (performance && performance.now) {
+        return performance.now();
+      }
+      if (performance && performance.webkitNow) {
+        return performance.webkitNow();
+      }
+      return new Date().getTime();
+    }
+
+    var lastSendedMessageId = Infinity,
+        lastEventId = null,
+        lastSentTime = null;
+
+    function checkId() {
+      if (lastEventId >= lastSendedMessageId) {
+        lastSentMessageId = Infinity;
+        var msgs = document.getElementById('msgs');
+      }
+    }
+	
+	function startListener() {
+		if ( 0 == chatSession.id ) return false;
+		var msgs = document.getElementById('msgs'),
+			es = new EventSource('server/?id=' + chatSession.id );
+		es.addEventListener('message', function (event) {
+				lastEventId = +event.lastEventId;
+				var div = document.createElement('div'),
+					msg = JSON.parse(event.data),
+					timestamp = document.createElement( 'div' ),
+					author = document.createElement( 'div' ),
+					text = document.createElement( 'div' );
+
+				timestamp.className = 'timestamp';
+				var ts = new Date(msg.ts);
+				timestamp.innerHTML = ts.getHours() + ':' + ts.getMinutes();
+				div.appendChild( timestamp );
+				
+				author.innerHTML = msg.author;
+				author.className = 'author';
+				div.appendChild( author );
+				
+				var msg_text = msg.msg;
+				switch( msg.msgType ) {
+					case -1: msg_text = 'В чат заходит ' + msg_text; break;
+					case -2: msg_text = 'Чат покидает ' + msg_text; break;
+				}
+				text.innerHTML = linkify( msg_text.replace( /\n/g, '<br/>' ) );
+				text.className = 'text';
+				div.appendChild( text );
+				div.className = msg.owner;
+				//msgs.insertBefore(div, msgs.firstChild);
+				msgs.appendChild( div );
+				div.scrollIntoView();
+				checkId();
+			}
+		);
+	}
+
+    function onDomReady() {
+		if ( loadSession() ) auth();
+		
+		setTimeout( function() {
+			document.getElementById('message').onkeypress = function() {
+				if ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey )
+					{ return post(); }
+				};
+			}, 10);
+    }
+
+    window.onload = onDomReady; // DOMContentLoaded can't prevent NSL under Firefox 10, 11
+
+    function post() {
+		var message = document.getElementById('message').value;
+		if (!message) {
+			return false;
+		}
+		document.getElementById('message').value = '';
+
+		lastSentTime = now();
+		lastSentMessageId = Infinity;
+
+		var xhr = new XMLHttpRequest();
+		xhr.open('POST', 'server/?id=' + encodeURIComponent( chatSession.id ) + '&' +
+			'message=' + encodeURIComponent(message), true);
+		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+		xhr.onreadystatechange = function () {
+			if (xhr.readyState === 4) {
+				lastSentMessageId = +xhr.responseText || Infinity;
+				checkId();
+			}
+		};
+		xhr.send(null);
+
+		return false;
+    }
+	
+	function linkify(text) {  
+		var urlRegex =/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;  
+		return text.replace(urlRegex, function(url) {  
+				return '<a href="' + url + '" target="_blank">' + url + '</a>';  
+			}
+		);
+	}	
+
+  </script>
+  <style type="text/css">
+	html * { font-family: Trebuchet MS; font-size: 12pt }
+	fieldset { border: none; padding: 0em; margin: 0em }
+	#msgs {
+		position: absolute;
+		overflow-y: scroll;
+		bottom: 6em;
+		right: 1em;
+		left: 1em;
+		top: 1em;
+	}
+    #msgs > div {
+		display: block;
+		margin-top: 0.3em;
+		overflow: hidden;
+		position: relative;
+    }
+	#msgs > div .timestamp { float: right; width: 6em }
+	#msgs > div .author { width: 8em; text-align: right; float: left }
+	#msgs > div .text { margin: 0em 9em }
+	#chat { visibility: hidden; position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px; }
+	#chat form { height: 4em; position: absolute; padding-left: 9em; padding-right: 7em; bottom: 1em; left: 1em; right: 1em }
+	#login { position: absolute; display: table; left: 1em; top: 1em }
+	#login form { display: table-row }
+		
+	#message { width: 100%; height: 4em; padding: 0px; margin: 0px }
+	#message + input { height: 4em; width: 6em; position: absolute; right: 0px; top: 0px; padding: 0em; }
+	
+	
+	.self { color: gray; }
+	.other { color: black; }
+	.system { color: black; font-style: italic }
+	
+	.author { font-weight: bold; margin-right: 1em; width: 10em }
+	.author.self { color: blue; }
+	.author.other { color: black; }
+	
+	.timestamp { color: gray;}
+  </style>
+</head>
+<body>
+	<div id="chat">
+		<div id="msgs"></div>
+		<form action="?" onsubmit="return post();"><fieldset>
+			<textarea type="text" name="message" id="message"></textarea>
+			<input type="submit" value="Send" />
+		</fieldset></form>
+	</div>
+	<div id="login">
+		<form action="?" onsubmit="return auth();"><fieldset>
+			<label>Ваше имя: <input type="text" name="name" id="name" required /></label><input id="login_submit" type="submit" value="Ок" />
+		</fieldset></form>
+	</div>
+	
+</body>
+</html>
