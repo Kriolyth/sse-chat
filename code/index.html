@@ -8,6 +8,9 @@
   <script type="text/javascript">
 	var chatSession = { id: 0, name: '' };
 	var server_host = '';
+	var msgHandlers = [];
+	var default_title = 'Help on help';
+	var msg_counter = 0;
 	
 	function loadSession() {
 		var prefix = 'ambichat_';
@@ -91,8 +94,56 @@
       }
     }
 	
+	function addMsgHandler( msg ) {
+		var div = document.createElement('div'),
+			timestamp = document.createElement( 'div' ),
+			author = document.createElement( 'div' ),
+			text = document.createElement( 'div' );
+		
+		timestamp.className = 'timestamp';
+		var ts = new Date(msg.ts);
+		timestamp.innerHTML = ts.format('HH:MM');
+		div.appendChild( timestamp );
+		
+		author.innerHTML = msg.author;
+		author.className = 'author';
+		div.appendChild( author );
+		
+		var msg_text = msg.msg;
+		switch( msg.msgType ) {
+			// System messages
+			case -1: msg_text = 'Это же ' + msg_text + '!'; break;
+			case -2: msg_text = 'Пока, ' + msg_text + '!'; break;
+		}
+		text.innerHTML = linkify( msg_text.replace( /\n/g, '<br/>' ) );
+		text.className = 'text';
+		div.appendChild( text );
+		
+		div.className = msg.owner;
+		msgs.appendChild( div );
+		div.scrollIntoView();
+	}
+	
+	function offscreenMsgHandler( msg ) {
+		if ( document.hidden ) {
+			++msg_counter;
+			document.title = '(' + msg_counter + ')' + ' | ' + default_title;
+		}
+	}
+	
 	function startListener() {
 		if ( 0 == chatSession.id ) return false;
+		
+		msgHandlers[ 'msgAdd' ] = addMsgHandler;
+		msgHandlers[ 'visChange' ] = offscreenMsgHandler;
+		
+		document.addEventListener( 'visibilitychange', function() {
+				if ( !document.hidden ) {
+					document.title = default_title;
+					msg_counter = 0;
+					}
+			}
+		);
 		
 		// Only start listener after we authorized
 		var msgs = document.getElementById('msgs'),
@@ -101,34 +152,12 @@
 		// Chat message listener
 		es.addEventListener('message', function (event) {
 				lastEventId = +event.lastEventId;
-				var div = document.createElement('div'),
-					msg = JSON.parse(event.data),
-					timestamp = document.createElement( 'div' ),
-					author = document.createElement( 'div' ),
-					text = document.createElement( 'div' );
+				var msg = JSON.parse(event.data);
 
-				timestamp.className = 'timestamp';
-				var ts = new Date(msg.ts);
-				timestamp.innerHTML = ts.format('HH:MM');
-				div.appendChild( timestamp );
+				// call handlers
+				for ( var i in msgHandlers )
+					msgHandlers[i]( msg );
 				
-				author.innerHTML = msg.author;
-				author.className = 'author';
-				div.appendChild( author );
-				
-				var msg_text = msg.msg;
-				switch( msg.msgType ) {
-					// System messages
-					case -1: msg_text = 'В чат заходит ' + msg_text; break;
-					case -2: msg_text = 'Чат покидает ' + msg_text; break;
-				}
-				text.innerHTML = linkify( msg_text.replace( /\n/g, '<br/>' ) );
-				text.className = 'text';
-				div.appendChild( text );
-				
-				div.className = msg.owner;
-				msgs.appendChild( div );
-				div.scrollIntoView();
 				checkId();
 			}
 		);
@@ -177,7 +206,7 @@
 	
 	// convert links to clickable links
 	function linkify(text) {  
-		var urlRegex =/(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;  
+		var urlRegex =/(\b(https?|ftp|file):\/\/[-A-Z0-9А-Я+&@#\/%?=~_|!:,.;\(\)]*[-A-ZА-Я0-9+&@#\/%=~_|\(\)])/ig;  
 		return text.replace(urlRegex, function(url) {  
 				return '<a href="' + url + '" target="_blank">' + url + '</a>';  
 			}
