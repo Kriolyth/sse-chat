@@ -11,6 +11,7 @@
 	var msgHandlers = [];
 	var default_title = 'Help on help';
 	var msg_counter = 0;
+	var is_active = true;
 	
 	function loadSession() {
 		var prefix = 'ambichat_';
@@ -124,8 +125,24 @@
 		div.scrollIntoView();
 	}
 	
+	function visibilityChange() {
+		if ( !( document.hidden || !is_active ) ) {
+			document.title = default_title;
+			msg_counter = 0;
+		} else {
+			document.title = ' | ' + default_title;
+		}
+	}
+	function onBlur() {
+		is_active = false;
+		visibilityChange();
+	};
+	function onFocus(){
+		is_active = true;
+		visibilityChange();
+	};
 	function offscreenMsgHandler( msg ) {
-		if ( document.hidden ) {
+		if ( document.hidden || !is_active ) {
 			++msg_counter;
 			document.title = '(' + msg_counter + ')' + ' | ' + default_title;
 		}
@@ -137,13 +154,9 @@
 		msgHandlers[ 'msgAdd' ] = addMsgHandler;
 		msgHandlers[ 'visChange' ] = offscreenMsgHandler;
 		
-		document.addEventListener( 'visibilitychange', function() {
-				if ( !document.hidden ) {
-					document.title = default_title;
-					msg_counter = 0;
-					}
-			}
-		);
+		window.onfocus = onFocus;
+		window.onblur = onBlur;
+		document.addEventListener( 'visibilitychange', visibilityChange );
 		
 		// Only start listener after we authorized
 		var msgs = document.getElementById('msgs'),
