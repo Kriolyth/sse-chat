@@ -17,7 +17,11 @@ function Listener( router ) {
 					'Content-Type': 'text/plain',
 					'Allow': 'GET, POST'
 				} );
-			response.write( JSON.stringify( request ) );
+			var dump = { version: request.httpVersion,
+				method: request.method,
+				url: request.url,
+				headers: request.headers }
+			response.write( JSON.stringify( dump ) );
 			response.end();
 		}
 
@@ -27,7 +31,7 @@ function Listener( router ) {
 			switch( request.method) {
 				case 'POST':
 					//processPost( request, response );
-					var gatherer = require( 'gatherer' );
+					var gatherer = require( './gatherer.js' ).Gatherer();
 					gatherer.collect( request, function(body){ 
 						onMessage( response, request, body ); } );
 					break;
@@ -43,12 +47,12 @@ function Listener( router ) {
 		
 		// public interface
 		return {
-			function listen( port, ip ) {
+			listen: function( port, ip ) {
 				httpServer.listen( port, ip )
-			}
+			},
 			
 			// All requests are combined, parsed and sent further
-			function setRequestRouter( router ) {
+			setRequestRouter: function( router ) {
 				requestRouter = router
 			}
 		}

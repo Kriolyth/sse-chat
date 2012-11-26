@@ -4,17 +4,14 @@
 	Retrieves request body
 */
 
-Gatherer = {
+function Gatherer() {
 		var body;
-		
-		function collect( request, dataEnd, limit = 65536 ) {
-			request.addListener('data', dataCollect );
-			request.once('end', (function(end){ return dataReceived(request, end); })(dataEnd) );
-		}
+		var maxLength = 0;
 		
 		function dataCollect(chunk) {
 			// append the current chunk of data to the fullBody variable
-			body += chunk.toString();
+			if ( !maxLength || body.length <= maxLength ) 
+				body += chunk.toString();
 		};
 		
 		function dataReceived( request, end ) {
@@ -23,4 +20,16 @@ Gatherer = {
 				end( body );
 			}
 		}
+		
+		return {
+			collect: function( request, dataEnd, limit ) {
+				if ( limit ) maxLength = limit;
+				body = '';
+				request.addListener('data', dataCollect );
+				request.once('end', (function(end){ return dataReceived(request, end); })(dataEnd) );
+			}
+		}
+		
 }
+
+exports.Gatherer = Gatherer

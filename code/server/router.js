@@ -13,7 +13,8 @@
 	E.g.:
 	filter = {
 		method: 'POST',    // equality
-		url   : { regex: 0, '/post?' }  // first-letter substring
+		url   : { regex: '^/post?' }  // regex
+		query : { match: '/post?' }  // first-letter substring
 	}
 
 */
@@ -29,11 +30,12 @@ Catcher.prototype.catches = function( request ) {
 			switch ( typeof( this.filter[field] ) ) {
 				case 'string': match = ( request[field] == this.filter[field] ); break;
 				case 'object':
-					if ( this.filter[field].regex ) 
-						match = (new Regex( this.filter[field], "i" )).match( request[field] );
+					if ( this.filter[field].regex )
+						match = (new RegExp( this.filter[field].regex )).test( request[field] );
+					else if ( this.filter[field].match )
+						match = ( 0 == request[field].indexOf( this.filter[field].match ) );
 					else
-						match = ( 0 == request[field].toLowerCase().indexOf( this.filter[field].toLowerCase() ) );
-					break;
+						match = false;
 			}
 		}
 		if ( !match ) break;
@@ -50,7 +52,7 @@ Handler.prototype.catches = function( request ) {
 	return this.catcher.catches( request );
 }
 Handler.prototype.call = function( response, request, body ) {
-	return this.func( response, request, body );
+	return this.handler( response, request, body );
 }
 
 function Router() {
@@ -73,13 +75,18 @@ function Router() {
 			response.writeHead( 404, "Not Found", {
 					'Content-Type': 'text/plain',
 				} );
-			response.write( JSON.stringify( request ) );
+			var dump = { status: 404,
+				httpVersion: request.httpVersion,
+				method: request.method,
+				url: request.url,
+				headers: request.headers }
+			response.write( JSON.stringify( dump, undefined, '\t' ) );
 			response.end();
 		}
 		
 		// public interface
 		return {
-			function route( response, request, body ) {
+			route: function( response, request, body ) {
 				// route request
 				if (!process( response, request, body ) )
 				{
@@ -88,18 +95,14 @@ function Router() {
 				}
 				
 				return true;
-			}
+			},
 			
-			function addHandler( filter, callback ) {
-				addHandler( filter, func );
+			addHandler: function( filter, callback ) {
+				addHandler( filter, callback );
 			}
 			
 		}
 
 	};
 
-function createListener( router ) {
-	return Listener( router );
-}
-	
-exports.createListener = createListener;
+exports.Router = Router;
