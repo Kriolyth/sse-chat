@@ -15,6 +15,31 @@ Channel.prototype.isProtected = function() {
 	return this.pwd == ''; 
 }
 
+Channel.prototype.onJoin = function( session ) {
+	session.addOwner( this, this.onDisconnect );
+	this.sessions[ session.id ] = session;
+	
+	// lazy post a join message
+}
+
+Channel.prototype.onLeave = function( session ) {
+	delete this.sessions[ session.id ];
+	
+	// find if it was the last session of a user
+	var isLast = true;
+	for ( var i in this.sessions ) {
+		if ( this.sessions[i].user.id == session.user.id ) {
+			isLast = false;
+			break;
+		}
+	}
+	
+	if ( isLast ) {
+		// lazy post a quit message
+	}
+}
+
+
 // A channel object is a message history view + a number of
 // active connections (sessions)
 var channel = function( id, name ) {
@@ -24,31 +49,12 @@ var channel = function( id, name ) {
 		return channels[ id ];
 	}
 	
-	var new_channel = {
-		id : ut.new_id(),
-		name: name,
-		pwd: '',
-		sessions: [],
-		history: [],
-		
-		isProtected: function() { return this.pwd == ''; }
-		onDisconnect: function( session ) {
-			delete sessions[ session.id ];
-			
-			// find if it was the last session of a user
-			
-		}
-		
-		join: function( session ) {
-			session.addOwner( this, this.onDisconnect );
-			this.sessions[ session.id ] = session;
-		}
-	};
+	var new_channel = new Channel( name );
 		
 	sessions[ new_session.id ] = new_session;
 	sesByUser[ new_session.user.id ] = new_session;
-	new_session.addOwner( sessions, ut.deleter[ sessions ] );
-	new_session.addOwner( sesByUser, ut.deleter[ sesByUser ] );	
+	new_session.addOwner( sessions, function( array, obj ) { delete array[obj.id]; } );
+	new_session.addOwner( sesByUser, function( array, obj ) { delete array[obj.user.id]; } );
 	
 	return new_session;
 }

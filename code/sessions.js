@@ -25,10 +25,10 @@ var session = function( id, user ) {
 			if ( undefined === removeFunc )
 				// if no removeFunc is given, we rely on 'remove'
 				// method in owner
-				this.destroyCallbacks.push( function(me){ owner.remove(me); } );
+				this.destroyCallbacks.push( new function(me){ owner.remove(me); } );
 			else 
 				// otherwise, we add a remover
-				this.destroyCallbacks.push( function(me){ removeFunc( owner, me ); } );
+				this.destroyCallbacks.push( new function(me){ removeFunc( owner, me ); } );
 		}
 		destroy: function() {
 			// remove ourselves from all collections			
@@ -40,8 +40,8 @@ var session = function( id, user ) {
 		
 	sessions[ new_session.id ] = new_session;
 	sesByUser[ new_session.user.id ] = new_session;
-	new_session.addOwner( sessions, ut.deleter[ sessions ] );
-	new_session.addOwner( sesByUser, ut.deleter[ sesByUser ] );	
+	new_session.addOwner( sessions,  function( array, obj ) { delete array[obj.id]; } );
+	new_session.addOwner( sesByUser, function( array, obj ) { delete array[obj.user.id]; } );	
 	
 	return new_session;
 }
