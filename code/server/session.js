@@ -65,19 +65,20 @@ function createSessionDB() {
 	return {
 		find: function( filter ) {
 			return findSession( filter );
-		}
+		},
 		
 		add: function( user ) {
 			if ( !user['id'] ) return undefined;
 			var sess = newSession( user );
 			return sess;
-		}
+		},
 		
 		remove: function( session ) {
-			if ( session && session['id'] }
+			if ( session && session['id'] ) {
 				removeSession( session );
 				return true;
-			|
+			}
+			
 			return false;
 		}
 		

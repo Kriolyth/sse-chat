@@ -8,7 +8,7 @@
 
 var querystring = require( 'querystring' );
 var UserDB = require( './userdb.js' ).UserDB;
-var Sessions = require( './sessions.js' ).Sessions;
+var Sessions = require( './session.js' ).Sessions;
 
 var AUTH_PIN_EXPIRED = { ok: false, status: 101, 
 		message: 'Too many pin retries' },
@@ -81,8 +81,7 @@ function AuthProcessor( router ) {
 				return authFailed( response, AUTH_NOT_ADDED );
 			}
 			
-			user.new_user = 1;
-			return authOk( response, user );	
+			return authOk( response, user, { new_user: 1 } );
 		}
 		
 		function authFailed( response, detail ) {
@@ -95,18 +94,17 @@ function AuthProcessor( router ) {
 			
 			return true;
 		}
-		function authOk( response, user ) {
+		function authOk( response, user, new_user ) {
 			// register a new session and return session parameters to user
 			var sess = Sessions.add( user );
 			if ( !sess ) return authError( response, AUTH_NO_SESSION );
 			
 			var detail = AUTH_OK;
 			detail.session = sess.id,
-			detail.user: user.id,
-			detail.username: user.name;
-			if ( user['new_user'] ) {				
+			detail.user = user.id,
+			detail.username = user.name;
+			if ( new_user ) {
 				detail.pin = user.pin;
-				delete user.new_user;
 			}
 				
 			response.writeHead( 200, "OK", {
@@ -116,8 +114,10 @@ function AuthProcessor( router ) {
 			response.end();			
 			
 			// reset PIN retries counter
-			user.pin_retries = 0;
-			UserDB.update( user );
+			if ( user.pin_retries != 0 ) {
+				user.pin_retries = 0;
+				UserDB.update( user );
+			}
 			
 			return true;
 		}

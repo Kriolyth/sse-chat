@@ -48,7 +48,7 @@ function createUserDB() {
 			
 			add: function( user ) {
 				if ( !user['name'] ) return undefined;
-				if ( !findUser( { name: user['name'] } ) ) {
+				if ( !findUser( { name: user.name } ) ) {
 					// new user, add the guy
 					var new_user = addUser( user );
 					return new_user;
@@ -57,10 +57,11 @@ function createUserDB() {
 			},
 			
 			update: function( user ) {				
-				if ( !findUser( { id: user['id'] } ) )
+				if ( !user['id'] ) return undefined;
+				if ( !findUser( { id: user.id } ) )
 					return false;  // user not found
 				else {
-					users[ user['id'] ] = user;
+					users[ user.id ] = user;
 					return true;
 				}
 			}
