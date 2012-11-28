@@ -46,8 +46,8 @@ function AuthProcessor( router ) {
 			var auth_result = doAuth( user, qs );
 			if ( !auth_result.ok )
 				return authFailed( response, auth_result );
-			else
-				return authOk( response, user );
+			
+			return authOk( response, user );
 		}
 		
 		function doAuth( user ) {			
@@ -68,10 +68,17 @@ function AuthProcessor( router ) {
 		
 		function authFailed( response, detail ) {
 			// return 200 with detail
+			response.writeHead( 200, "OK", {
+					'Content-Type': 'text/plain',
+				} );
+			response.write( JSON.stringify( detail, undefined, '\t' ) );
+			response.end();
+			
 			return true;
 		}
 		function authOk( response, user ) {
-			// return 200 with user credentials
+			// register a new session and return session parameters to user
+			
 			return true;
 		}
 		
