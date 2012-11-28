@@ -79,6 +79,11 @@ function AuthProcessor( router ) {
 		function authOk( response, user ) {
 			// register a new session and return session parameters to user
 			
+			response.writeHead( 200, "OK", {
+					'Content-Type': 'text/plain',
+				} );
+			response.write( JSON.stringify( user, undefined, '\t' ) );
+			response.end();
 			return true;
 		}
 		
@@ -105,21 +110,7 @@ function AuthProcessor( router ) {
 		
 		// public interface
 		return {
-			route: function( response, request, body ) {
-				// route request
-				if (!process( response, request, body ) )
-				{
-					unroutable( response, request );
-					return false;
-				}
-				
-				return true;
-			},
-			
-			addHandler: function( filter, callback ) {
-				addHandler( filter, callback );
-			}
-			
+			// NONE???
 		}
 
 	};

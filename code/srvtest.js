@@ -12,6 +12,7 @@ process.on('uncaughtException', function (e) {
 
 var router = require('./server/router.js').Router();
 var listener = require('./server/listener.js').Listener( router );
+var auth = require('./server/auth.js').AuthProcessor( router );
 
 function onGet( response, request ) {
 	util.puts( 'GET: ' + request.url );
@@ -42,7 +43,8 @@ function onPost( response, request, body ) {
 		headers: request.headers,
 		body: body }
 		
-	var html = '<!DOCTYPE html><body><form method="post"><fieldset><input name="field" value="value"/></fieldset></form><pre>';
+	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
+		'<input name="id" value="1001"/><input name="pin" value="1234"/></fieldset></form><pre>';
 	response.write( html );
 	response.write( JSON.stringify( dump, undefined, '\t' ) );
 	response.write( '</pre></html>' );
