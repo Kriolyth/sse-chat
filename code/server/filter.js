@@ -22,9 +22,8 @@
 
 */
 function Comparator( reference, cmpFunc ) {
-	this.ref = reference;
-	this.match = this[ '_' + cmpFunc ];
-	
+	this.reference = reference;
+	this.match = this[ '_' + cmpFunc ];	
 }
 
 Comparator.prototype._equal = function( x ) {
@@ -41,25 +40,25 @@ Comparator.prototype._false = function( x ) {
 }
 
 
-function Filter( filter ) {
+function Filter( pattern ) {
 	this.filter = {};
 	// convert all fields in filter to comparators
-	for ( var field in filter ) {
-		switch( typeof( filter[field] ) ) {
+	for ( var field in pattern ) {
+		switch( typeof( pattern[field] ) ) {
 			case 'string': 
 			case 'number': 
-				this.filter[field] = Comparator( filter[field], 'equal' );
+				this.filter[field] = new Comparator( pattern[field], 'equal' );
 				break;
 			case 'object':
-				if ( this.filter[field].regex )
-					this.filter[field] = Comparator( filter[field].regex, 'regex' );
-				else if ( this.filter[field].match )
-					this.filter[field] = Comparator( filter[field].match, 'match' );
+				if ( pattern[field].regex )
+					this.filter[field] = new Comparator( pattern[field].regex, 'regex' );
+				else if ( pattern[field].match )
+					this.filter[field] = new Comparator( pattern[field].match, 'match' );
 				else
 					// TODO: convert to deep object comparator
-					this.filter[field] = Comparator( filter[field], 'equal' );
+					this.filter[field] = new Comparator( pattern[field], 'equal' );
 			default:
-				this.filter[field] = Comparator( filter[field], 'false' );
+				this.filter[field] = new Comparator( pattern[field], 'false' );
 		}
 	}
 }

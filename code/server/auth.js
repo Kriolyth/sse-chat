@@ -7,13 +7,15 @@
 */
 
 var querystring = require( 'querystring' );
-var UserDB = require( './userdb.js' );
+var UserDB = require( './userdb.js' ).UserDB;
 
 var AUTH_PIN_EXPIRED = { ok: false, status: 101, 
 		message: 'Too many pin retries' },
 	AUTH_PIN_INVALID = { ok: false, status: 102,
 		message: 'Invalid PIN' },
-	AUTH_OK = { ok: true, status: 0, message: 'Welcome aboard!' };
+	AUTH_NOT_ADDED   = { ok: false, status: 103,
+		message: 'Could not add new user' },
+	AUTH_OK          = { ok: true, status: 0, message: 'Welcome aboard!' };
 
 function AuthProcessor( router ) {
 		// private scope
@@ -28,15 +30,19 @@ function AuthProcessor( router ) {
 			var user;
 			if ( 0 == qs['id'] ) {
 				// new user -- test if there is one
-				user = UserDB.find( qs['name'] );
+				user = UserDB.find( { name: qs['name'] } );
 				if ( !user ) {
 					// add one
-					user = UserDB.add( qs );
-					return authOk( response, user );
+					return newUser( response, qs );
 				}
 			} else {
 				// existing user
-				user = UserDB.find( { id: qs } );
+				user = UserDB.find( { id: qs['id'] } );
+				if ( !user ) {
+					// no such id -- add one
+					return newUser( response, qs );
+				}
+				// if name in DB does not match the given one, discard the given
 			}
 			
 			// Existing user -- PIN is required at this stage
@@ -50,7 +56,7 @@ function AuthProcessor( router ) {
 			return authOk( response, user );
 		}
 		
-		function doAuth( user ) {			
+		function doAuth( user, qs ) {			
 			if ( !qs['pin'] ) {
 				// PIN not specified
 				return AUTH_NO_PIN;
@@ -64,6 +70,15 @@ function AuthProcessor( router ) {
 				return AUTH_PIN_INVALID;
 			} else
 				return AUTH_OK;
+		}
+		
+		function newUser( response, qs ) {
+			user = UserDB.add( qs );
+			if ( !user ) {  // some error occurred
+				return authFailed( response, AUTH_NOT_ADDED );
+			}
+			
+			return authOk( response, user );			
 		}
 		
 		function authFailed( response, detail ) {
@@ -84,6 +99,11 @@ function AuthProcessor( router ) {
 				} );
 			response.write( JSON.stringify( user, undefined, '\t' ) );
 			response.end();
+			
+			// reset PIN retries counter
+			user.pin_retries = 0;
+			UserDB.update( user );
+			
 			return true;
 		}
 		
@@ -105,7 +125,7 @@ function AuthProcessor( router ) {
 		}
 
 		// creation actions
-		router.addHandler( { method: 'POST'. url: '/auth' }, onAuthRequest );
+		router.addHandler( { method: 'POST', url: '/auth' }, onAuthRequest );
 
 		
 		// public interface

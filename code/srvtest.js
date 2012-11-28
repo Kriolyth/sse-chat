@@ -44,7 +44,8 @@ function onPost( response, request, body ) {
 		body: body }
 		
 	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
-		'<input name="id" value="1001"/><input name="pin" value="1234"/></fieldset></form><pre>';
+		'<input name="id" value="1001"/><input name="pin" value="1234"/></fieldset>' +
+		'<fieldset><input type="submit" value="Submit"/></fieldset></form><pre>';
 	response.write( html );
 	response.write( JSON.stringify( dump, undefined, '\t' ) );
 	response.write( '</pre></html>' );
@@ -59,7 +60,9 @@ function showForm( response, request ) {
 	response.writeHead( 200, "OK", {
 			'Content-Type': 'text/html',
 		} );
-	var html = '<!DOCTYPE html><body><form method="post"><fieldset><input name="field" value="value"/></fieldset></form></body>';
+	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
+		'<input name="id" value="1001"/><input name="pin" value="1234"/></fieldset>' +
+		'<fieldset><input type="submit" value="Submit"/></fieldset></form></body>';
 	response.write( html );
 				
 	response.end();

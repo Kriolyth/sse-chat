@@ -44,20 +44,19 @@ function createUserDB() {
 		return {
 			find: function( filter ) {
 				return findUser( filter );
-			}
+			},
 			
 			add: function( user ) {
 				if ( !user['name'] ) return undefined;
 				if ( !findUser( { name: user['name'] } ) ) {
 					// new user, add the guy
-					var new_user = addUser( new_user );
+					var new_user = addUser( user );
 					return new_user;
 				}
 				return false;
-			}
+			},
 			
 			update: function( user ) {				
-				var new_user;
 				if ( !findUser( { id: user['id'] } ) )
 					return false;  // user not found
 				else {
