@@ -8,6 +8,7 @@
 
 var querystring = require( 'querystring' );
 var UserDB = require( './userdb.js' ).UserDB;
+var Sessions = require( './sessions.js' ).Sessions;
 
 var AUTH_PIN_EXPIRED = { ok: false, status: 101, 
 		message: 'Too many pin retries' },
@@ -15,6 +16,8 @@ var AUTH_PIN_EXPIRED = { ok: false, status: 101,
 		message: 'Invalid PIN' },
 	AUTH_NOT_ADDED   = { ok: false, status: 103,
 		message: 'Could not add new user' },
+	AUTH_NO_SESSION  = { ok: false, status: 201,
+		message: 'Sorry, out of cookies' },
 	AUTH_OK          = { ok: true, status: 0, message: 'Welcome aboard!' };
 
 function AuthProcessor( router ) {
@@ -78,7 +81,8 @@ function AuthProcessor( router ) {
 				return authFailed( response, AUTH_NOT_ADDED );
 			}
 			
-			return authOk( response, user );			
+			user.new_user = 1;
+			return authOk( response, user );	
 		}
 		
 		function authFailed( response, detail ) {
@@ -93,12 +97,23 @@ function AuthProcessor( router ) {
 		}
 		function authOk( response, user ) {
 			// register a new session and return session parameters to user
+			var sess = Sessions.add( user );
+			if ( !sess ) return authError( response, AUTH_NO_SESSION );
 			
+			var detail = AUTH_OK;
+			detail.session = sess.id,
+			detail.user: user.id,
+			detail.username: user.name;
+			if ( user['new_user'] ) {				
+				detail.pin = user.pin;
+				delete user.new_user;
+			}
+				
 			response.writeHead( 200, "OK", {
 					'Content-Type': 'text/plain',
 				} );
-			response.write( JSON.stringify( user, undefined, '\t' ) );
-			response.end();
+			response.write( JSON.stringify( detail, undefined, '\t' ) );
+			response.end();			
 			
 			// reset PIN retries counter
 			user.pin_retries = 0;
@@ -106,7 +121,7 @@ function AuthProcessor( router ) {
 			
 			return true;
 		}
-		
+
 		function authError( response, detail ) {
 			// return unroutable
 			response.writeHead( 404, "Not Found", {
