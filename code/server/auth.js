@@ -100,7 +100,7 @@ function AuthProcessor( router ) {
 			// register a new session and return session parameters to user
 			var sess = Sessions.add( user );
 			if ( !sess ) return authError( response, AUTH_NO_SESSION() );
-			sess.halfopen( halfopen_timeout );
+			sess.halfOpen( halfopen_timeout );
 			
 			var detail = AUTH_OK();
 			detail.session = sess.id,
@@ -148,7 +148,9 @@ function AuthProcessor( router ) {
 		
 		// public interface
 		return {
-			// NONE???
+			setHalfopenTimeout: function( timeout ) {
+				halfopen_timeout = timeout;
+			}
 		}
 
 	};

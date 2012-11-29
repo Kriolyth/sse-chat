@@ -1,4 +1,5 @@
 var util = require('util');
+var querystring = require( 'querystring' );
 
 var PORT = 8002;
 
@@ -13,6 +14,7 @@ process.on('uncaughtException', function (e) {
 var router = require('./server/router.js').Router();
 var listener = require('./server/listener.js').Listener( router );
 var auth = require('./server/auth.js').AuthProcessor( router );
+var initiator = require('./server/initiator.js').Initiator( router );
 
 function onGet( response, request ) {
 	util.puts( 'GET: ' + request.url );
@@ -44,11 +46,11 @@ function onPost( response, request, body ) {
 		body: body }
 		
 	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
-		'<input name="id" value="1001"/><input name="pin" value="1234"/></fieldset>' +
-		'<fieldset><input type="submit" value="Submit"/></fieldset></form><pre>';
+		'<input name="id" value="1001"/><input name="pin" value="1234"/>' +
+		'<input type="submit" value="Submit"/></fieldset></form>';
+		
+	html += '<pre>' + JSON.stringify( dump, undefined, '\t' ) + '</pre></body></html>';
 	response.write( html );
-	response.write( JSON.stringify( dump, undefined, '\t' ) );
-	response.write( '</pre></html>' );
 	
 	response.end();
 	return true;
@@ -61,8 +63,13 @@ function showForm( response, request ) {
 			'Content-Type': 'text/html',
 		} );
 	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
-		'<input name="id" value="1001"/><input name="pin" value="1234"/></fieldset>' +
-		'<fieldset><input type="submit" value="Submit"/></fieldset></form></body>';
+		'<input name="id" value="1001"/><input name="pin" value="1234"/>' +
+		'<input type="submit" value="Submit"/></fieldset></form>';
+		
+	html += '<form method="get" action="/session"><fieldset><input name="id" value="1234"/>' +
+		'<input type="submit" value="Submit"/></fieldset></form>';
+		
+	html += '</body>';
 	response.write( html );
 				
 	response.end();
@@ -73,5 +80,7 @@ router.addHandler( { method: 'GET', url: '/' }, onGet );
 router.addHandler( { method: 'GET', url: { regex: '^/help' } }, onGet );
 router.addHandler( { method: 'GET', url: { match: '/post' } }, showForm );
 router.addHandler( { method: 'POST', url: { match: '/post' } }, onPost );
+
+auth.setHalfopenTimeout( 60000 );
 
 listener.listen( PORT, '127.0.0.1' );

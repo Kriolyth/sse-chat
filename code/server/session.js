@@ -11,6 +11,8 @@ function new_id() {
 	 return Math.floor( Math.random() * 1676214 ) + 1001;
 }
 
+
+
 function Session( id, user ) {
 	this.reset( id, user );
 }
@@ -25,7 +27,7 @@ Session.prototype.halfOpen = function( timeout ) {
 	this.halfopen = 1;
 	SessionDB.update( this );
 	// TODO: encapsulate timeout into a closure
-	this.timeoutId = setTimeout( timeout, this.onClose() );
+	this.timeoutId = setTimeout( function(session){ session.onClose(); }, timeout, this );
 }
 Session.prototype.attach = function( socket ) {
 	this.halfopen = 0;
@@ -38,6 +40,15 @@ Session.prototype.attach = function( socket ) {
 Session.prototype.onClose = function() {
 	this.socket = null;
 	this.halfopen = 0;
+	
+	if ( this.timeoutId ) {
+		require('util').puts( 'Timeout for session ' + this.id );
+		clearTimeout( this.timeoutId );
+		delete this.timeoutId;
+	} else {
+		require('util').puts( 'Socket close for session ' + this.id );
+	}
+	
 	SessionDB.remove( this );
 }
 

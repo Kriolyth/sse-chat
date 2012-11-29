@@ -4,20 +4,21 @@
 	Handles connection request to SSE socket (the GET query)
 */
 
-var querystring = require( 'querystring' );
+var url = require( 'url' );
 var Filter = require( './filter.js' ).Filter;
 var Sessions = require( './session.js' ).Sessions;
 
 function Initiator( router ) {
 		// private scope
 		var requestRouter = router;
+		var defaultChannel;
 		
 		function onConnect( response, request ) {
-			var qs = querystring.parse( body );
+			var qs = url.parse( request.url, true ).query;
 			if ( !qs['id'] ) {
-				return connError( response, request, 'Missing ID' );
+				return connError( response, request, qs );
 			}
-			var sess = Sessions.find( { user: qs['id'], halfopen: 1 } );
+			var sess = Sessions.find( { id: qs.id, halfopen: 1 } );
 			if ( !sess || (sess.socket != null) ) {
 				// think carefully about session hijacking
 				// "halfopen" is pretty decent, but still not safe enough
@@ -25,6 +26,16 @@ function Initiator( router ) {
 			}
 			
 			// write OK headers and continue with connection
+			sess.attach( response );
+			response.writeHead( 200, "Ok", {
+					'Content-Type': 'text/plain',
+				} );
+			var dump = { status: 200,
+				session: sess.id }
+			response.write( JSON.stringify( dump, undefined, '\t' ) );
+			response.end();
+			
+			return true;
 			
 		}
 		function unauth( response, request ) {
@@ -50,7 +61,6 @@ function Initiator( router ) {
 				httpVersion: request.httpVersion,
 				method: request.method,
 				url: request.url,
-				headers: request.headers,
 				detail: detail }
 			response.write( JSON.stringify( dump, undefined, '\t' ) );
 			response.end();
@@ -59,21 +69,16 @@ function Initiator( router ) {
 		}
 		
 		// on creation actions
-		router.addHandler( { method: 'GET', url: { match: '/server?' } }, onConnect );
+		router.addHandler( { method: 'GET', url: { match: '/session?' } }, onConnect );
 		
 		// public interface
 		return {
-			listen: function( port, ip ) {
-				httpServer.listen( port, ip )
-			},
-			
-			// All requests are combined, parsed and sent further
-			setRequestRouter: function( router ) {
-				requestRouter = router
+			setDefaultChannel: function( channel ) {
+				defaultChannel = channel;
 			}
 		}
 
 	};
 
 	
-exports.Listener = Listener;
+exports.Initiator = Initiator;

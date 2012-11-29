@@ -51,12 +51,13 @@ function Filter( pattern ) {
 				break;
 			case 'object':
 				if ( pattern[field].regex )
-					this.filter[field] = new Comparator( pattern[field].regex, 'regex' );
+					this.filter[field] = new Comparator( new RegExp( pattern[field].regex ), 'regex' );
 				else if ( pattern[field].match )
 					this.filter[field] = new Comparator( pattern[field].match, 'match' );
 				else
 					// TODO: convert to deep object comparator
 					this.filter[field] = new Comparator( pattern[field], 'equal' );
+				break;
 			default:
 				this.filter[field] = new Comparator( pattern[field], 'false' );
 		}
@@ -64,6 +65,7 @@ function Filter( pattern ) {
 }
 Filter.prototype.match = function( object ) {
 	for ( var field in this.filter ) {
+		// require('util').puts( 'match: field=' + field + ', objfield=' + object[field] );
 		if ( object[field] && !this.filter[field].match( object[field] ) )
 			return false;
 	}
