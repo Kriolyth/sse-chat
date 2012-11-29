@@ -18,13 +18,26 @@ Session.prototype.reset = function( id, user ) {
 	this.id = id;
 	this.user = user.id;
 	this.created = (new Date()).getTime();
+	this.halfopen = 0;
 	this.socket = null;
 }
+Session.prototype.halfOpen = function( timeout ) {
+	this.halfopen = 1;
+	SessionDB.update( this );
+	// TODO: encapsulate timeout into a closure
+	this.timeoutId = setTimeout( timeout, this.onClose() );
+}
 Session.prototype.attach = function( socket ) {
+	this.halfopen = 0;
+	
+	clearTimeout( this.timeoutId );
+	delete this.timeoutId;
+	
 	socket.once( 'close', this.onClose );
 }
 Session.prototype.onClose = function() {
 	this.socket = null;
+	this.halfopen = 0;
 	SessionDB.remove( this );
 }
 
@@ -62,6 +75,14 @@ function createSessionDB() {
 		reusable.push( session );
 	}
 	
+	function updateSession( session ) {
+		if ( session && session['id'] ) {
+			sessions[ session.id ] = session;
+			return true;
+		}		
+		return false;
+	}
+	
 	return {
 		find: function( filter ) {
 			return findSession( filter );
@@ -80,6 +101,10 @@ function createSessionDB() {
 			}
 			
 			return false;
+		},
+		
+		update: function( session ) {
+			return updateSession( session );
 		}
 		
 	}

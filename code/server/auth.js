@@ -10,18 +10,20 @@ var querystring = require( 'querystring' );
 var UserDB = require( './userdb.js' ).UserDB;
 var Sessions = require( './session.js' ).Sessions;
 
-var AUTH_PIN_EXPIRED = { ok: false, status: 101, 
-		message: 'Too many pin retries' },
-	AUTH_PIN_INVALID = { ok: false, status: 102,
-		message: 'Invalid PIN' },
-	AUTH_NOT_ADDED   = { ok: false, status: 103,
-		message: 'Could not add new user' },
-	AUTH_NO_SESSION  = { ok: false, status: 201,
-		message: 'Sorry, out of cookies' },
-	AUTH_OK          = { ok: true, status: 0, message: 'Welcome aboard!' };
+var AUTH_PIN_EXPIRED = function() { return { ok: false, status: 101, 
+		message: 'Too many pin retries' } },
+	AUTH_PIN_INVALID = function() { return { ok: false, status: 102,
+		message: 'Invalid PIN' } },
+	AUTH_NOT_ADDED   = function() { return { ok: false, status: 103,
+		message: 'Could not add new user' } },
+	AUTH_NO_SESSION  = function() { return { ok: false, status: 201,
+		message: 'Sorry, out of cookies' } },
+	AUTH_OK          = function() { return { ok: true, status: 0, 
+		message: 'Welcome aboard!' } };
 
 function AuthProcessor( router ) {
 		// private scope
+		var halfopen_timeout = 3000;
 		
 		// Process auth request
 		function onAuthRequest( response, request, body ) {			
@@ -62,23 +64,23 @@ function AuthProcessor( router ) {
 		function doAuth( user, qs ) {			
 			if ( !qs['pin'] ) {
 				// PIN not specified
-				return AUTH_NO_PIN;
+				return AUTH_NO_PIN();
 			} else if ( qs['pin'] != user['pin'] ) {
 				// auth by pin failed
 				user.pin_retries++;
 				UserDB.update( user );
 				if ( user.pin_retries > 3 ) {
-					return AUTH_PIN_EXPIRED;
+					return AUTH_PIN_EXPIRED();
 				}
-				return AUTH_PIN_INVALID;
+				return AUTH_PIN_INVALID();
 			} else
-				return AUTH_OK;
+				return AUTH_OK();
 		}
 		
 		function newUser( response, qs ) {
 			user = UserDB.add( qs );
 			if ( !user ) {  // some error occurred
-				return authFailed( response, AUTH_NOT_ADDED );
+				return authFailed( response, AUTH_NOT_ADDED() );
 			}
 			
 			return authOk( response, user, { new_user: 1 } );
@@ -97,9 +99,10 @@ function AuthProcessor( router ) {
 		function authOk( response, user, new_user ) {
 			// register a new session and return session parameters to user
 			var sess = Sessions.add( user );
-			if ( !sess ) return authError( response, AUTH_NO_SESSION );
+			if ( !sess ) return authError( response, AUTH_NO_SESSION() );
+			sess.halfopen( halfopen_timeout );
 			
-			var detail = AUTH_OK;
+			var detail = AUTH_OK();
 			detail.session = sess.id,
 			detail.user = user.id,
 			detail.username = user.name;
