@@ -20,26 +20,30 @@ Session.prototype.reset = function( id, user ) {
 	this.id = id;
 	this.user = user.id;
 	this.created = (new Date()).getTime();
-	this.halfopen = 0;
-	this.socket = null;
+	this.openState = 0;
+	this.lastEventId = 0;   // keep track of messages
+	this.socket = null;     
+	this.queue = [];        // message queue
 }
 Session.prototype.halfOpen = function( timeout ) {
-	this.halfopen = 1;
+	this.openState = 1;
 	SessionDB.update( this );
 	// TODO: encapsulate timeout into a closure
 	this.timeoutId = setTimeout( function(session){ session.onClose(); }, timeout, this );
 }
 Session.prototype.attach = function( socket ) {
-	this.halfopen = 0;
+	this.openState = 2;
 	
 	clearTimeout( this.timeoutId );
 	delete this.timeoutId;
 	
 	socket.once( 'close', this.onClose );
+	this.socket = socket;
 }
 Session.prototype.onClose = function() {
 	this.socket = null;
-	this.halfopen = 0;
+	this.openState = 0;
+	this.queue = [];
 	
 	if ( this.timeoutId ) {
 		require('util').puts( 'Timeout for session ' + this.id );
@@ -50,6 +54,9 @@ Session.prototype.onClose = function() {
 	}
 	
 	SessionDB.remove( this );
+}
+Session.prototype.addNotifyClose = function( func ) {
+	this.socket.once( 'close', function(x){ return function(){func(x);} }(this) );
 }
 
 function createSessionDB() {
