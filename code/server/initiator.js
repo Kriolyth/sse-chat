@@ -28,7 +28,9 @@ function Initiator( router ) {
 			var lastEventId = request.headers['Last-Event-Id'] || qs['Last-Event-ID'];
 			if ( lastEventId ) {
 				sess.lastEventId = lastEventId;
-				Sessions.update( sess );
+				// Javascritp objects are all references AND sessions are not stored 
+				// on a persistent memory device, so no need to update here
+				//Sessions.update( sess );
 			}
 			
 			// write OK headers and continue with connection
@@ -40,12 +42,11 @@ function Initiator( router ) {
 				//'Access-Control-Allow-Origin': 'http://' + request.headers.host
 			} );
 			response.write( ': Welcome aboard!\nretry: 15000\n\n' );
+			sess.attach( response );
 			
 			/* 
 				This is a sample how the code could go next
 				
-			Dispatcher.add( sess );
-			
 			if ( !welcomeProc ) {
 				var chans = Channels.find( { user: sess.user } );
 				if ( chans.length == 0 ) {
@@ -55,7 +56,6 @@ function Initiator( router ) {
 				} else {
 					// send a list of all channels the user has attended
 					Channels.sendList( chans, sess );
-					History.loadHistory( sess );
 				}
 			} else {
 				welcomeProc( sess );
@@ -67,10 +67,10 @@ function Initiator( router ) {
 			
 		}
 		function unauth( response, request ) {
-			response.writeHead( 403, "Not authorized", {
+			response.writeHead( 401, "Not authorized", {
 					'Content-Type': 'text/plain',
 				} );
-			var dump = { status: 403,
+			var dump = { status: 401,
 				httpVersion: request.httpVersion,
 				method: request.method,
 				url: request.url,

@@ -6,12 +6,16 @@
 */
 
 var Filter = require( './filter.js' ).Filter;
+var KeepAlive = require( './keepalive.js' ).KeepAlive;
+var Msg = require( './message.js' );
 
 function new_id() {
 	 return Math.floor( Math.random() * 1676214 ) + 1001;
 }
 
-
+/*
+	Session object
+*/
 
 function Session( id, user ) {
 	this.reset( id, user );
@@ -22,28 +26,42 @@ Session.prototype.reset = function( id, user ) {
 	this.created = (new Date()).getTime();
 	this.openState = 0;
 	this.lastEventId = 0;   // keep track of messages
-	this.socket = null;     
+	this.socket = null;
+	this.keepAlive = null;
 	this.queue = [];        // message queue
 }
+
+// Switch to 'half-open' state for as long as 'timeout'
 Session.prototype.halfOpen = function( timeout ) {
 	this.openState = 1;
-	SessionDB.update( this );
+	// SessionDB.update( this );
 	// TODO: encapsulate timeout into a closure
-	this.timeoutId = setTimeout( function(session){ session.onClose(); }, timeout, this );
+	this.timeoutId = setTimeout( (function(session){ return function(){session.onClose();}})(this), timeout );
 }
+
+// Associate with a connection
 Session.prototype.attach = function( socket ) {
 	this.openState = 2;
 	
 	clearTimeout( this.timeoutId );
 	delete this.timeoutId;
 	
-	socket.once( 'close', this.onClose );
+	this.keepAlive = new KeepAlive();
+	this.keepAlive.on( (function(obj){ return function(){ obj.push( new Msg.KeepAliveMsg() ); obj.send(); return true; } })(this) );
+	
+	socket.once( 'close', (function(session){ return function(){session.onClose();}})(this) );
 	this.socket = socket;
 }
+
 Session.prototype.onClose = function() {
 	this.socket = null;
 	this.openState = 0;
 	this.queue = [];
+	
+	if ( this.keepAlive ) {
+		this.keepAlive.off();
+		this.keepAlive = null;
+	}
 	
 	if ( this.timeoutId ) {
 		require('util').puts( 'Timeout for session ' + this.id );
@@ -55,9 +73,29 @@ Session.prototype.onClose = function() {
 	
 	SessionDB.remove( this );
 }
+
 Session.prototype.addNotifyClose = function( func ) {
 	this.socket.once( 'close', function(x){ return function(){func(x);} }(this) );
 }
+
+Session.prototype.push = function( msg ) {
+	this.queue.push( msg );
+}
+Session.prototype.send = function() {
+	if ( this.queue.length > 0 ) {	
+		var res = '';
+		this.queue.forEach( function(msg) {
+				res += msg.serialize();
+			} );
+		
+		this.queue = [];
+		this.socket.write( res );
+	}
+}
+
+/*
+	Session database
+*/
 
 function createSessionDB() {
 	var sessions = [];
