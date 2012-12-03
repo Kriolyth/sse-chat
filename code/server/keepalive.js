@@ -20,7 +20,7 @@ Keeper.prototype.tick = function () {
 	if ( this.buckets.length < this.maxTick )
 		rebuild();
 	
-	//require('util').puts( JSON.toString( {tick:this.curTick} ) );
+	//require('util').puts( JSON.stringify( {tick:this.curTick} ) );
 	
 	if ( this.buckets[ this.curTick ].length > 0 )
 	{
@@ -37,8 +37,8 @@ Keeper.prototype.add = function( callback ) {
 	var entry = { bucket: this.curTick, keepAlive: callback };
 	this.buckets[ this.curTick ].push( entry );
 	
-	var s = JSON.stringify( entry );
-	require('util').puts( s );
+	//var s = JSON.stringify( entry );
+	//require('util').puts( s );
 	
 	return entry;
 }

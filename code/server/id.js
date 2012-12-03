@@ -13,7 +13,7 @@ var ID = {
 		key: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~0123456789',
 		newid: function() {
 			return Math.floor( Math.random() * 16776214 ) + 1001;
-		}
+		},
 		
 		// return an url-friendly ID
 		id2s: function( id ) {
