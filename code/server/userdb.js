@@ -6,10 +6,8 @@
 */
 
 var Filter = require( './filter.js' ).Filter;
+var ID = require( './id.js' ).ID;
 
-function new_id() {
-	 return Math.floor( Math.random() * 1676214 ) + 1001;
-}
 function new_pin() {
 	 return Math.floor( Math.random() * 8998 ) + 1001;
 }
@@ -27,7 +25,7 @@ function createUserDB() {
 				
 			var id;
 			while ( !id || users[id] )
-				id = new_id();
+				id = ID.newid();
 
 			var new_user = {
 				id: id,

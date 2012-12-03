@@ -8,10 +8,7 @@
 var Filter = require( './filter.js' ).Filter;
 var KeepAlive = require( './keepalive.js' ).KeepAlive;
 var Msg = require( './message.js' );
-
-function new_id() {
-	 return Math.floor( Math.random() * 1676214 ) + 1001;
-}
+var ID = require( './id.js' ).ID;
 
 /*
 	Session object
@@ -117,7 +114,7 @@ function createSessionDB() {
 		} else {
 			var id;
 			while ( !id || sessions[id] )
-				id = new_id();
+				id = ID.newid();
 			new_session = new Session( id, user );
 		}
 		
