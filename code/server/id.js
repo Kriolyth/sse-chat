@@ -22,6 +22,21 @@ var ID = {
 				this.key[ (id>>6)  & 0x3f ] +
 				this.key[ (id>>12) & 0x3f ] +
 				this.key[ (id>>18) & 0x3f ];
+		},
+		
+		// convert url-friendly string to ID
+		s2id: function( s ) {
+			if ( s.length != 4 ) return 0;
+			var idx = [ key.indexOf(s[0]), key.indexOf(s[1]),
+				key.indexOf(s[2]), key.indexOf(s[3]) ];
+			if ( idx.indexOf(-1) != -1 )
+				return 0;
+				
+			return
+				( idx[0] << 18 ) | 
+				( idx[1] << 12 ) | 
+				( idx[2] <<  6 ) |
+				( idx[3]       );
 		}
 	};
 

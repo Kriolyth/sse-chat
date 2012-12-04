@@ -15,6 +15,11 @@ function createChannelDB() {
 		function findChan( filter ) {
 			return (new Filter(filter)).find( channels );
 		}
+		function findUserChannels( user ) {
+			var result = channels.filter( function(entry) {
+					return entry.hasUser( user );
+				} );
+		}
 		
 		function addChan( host_user ) {
 			var id;
@@ -22,8 +27,9 @@ function createChannelDB() {
 				id = ID.id2s( ID.newid() );
 
 			var new_chan = new Channel( id );
-			if ( host_user )
+			if ( host_user ) {
 				new_chan.addUser( host_user, 'host' );
+			}
 			
 			channels[ new_chan.id ] = new_chan;
 			return new_chan;
