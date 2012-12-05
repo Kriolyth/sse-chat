@@ -181,8 +181,11 @@ function createSessionDB() {
 		
 		findUserSessions: function( users ) {
 			// list all active sessions for specified users
-			return sessions.filter( function(sess) {
-				return users.indexOf( sess.user ) != -1;
+			return sessions.filter( function _FindUserSessions(sess) {
+				return ( 
+					( sess.openState == 2 ) &&
+					( users.indexOf( sess.user ) != -1 )
+					);
 			} );
 		}
 		
