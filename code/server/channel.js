@@ -10,11 +10,13 @@ var Roles = ['guest','voice','moderator','host'];
 
 function Channel( id ) {
 	this.id = id;
-	this.publicicty = 0;
-	this.users = [];
+	this.users = {};
+	this.published = 0;
+	this.title = 'Default title';
+	this.name = '* ' + id + ' *';
 }
 
-Channel.prototype.addUser( user, role ) {
+Channel.prototype.addUser = function( user, role ) {
 	if ( !this.hasUser( user ) ) {
 		this.users[ user.id ] = 'guest';
 	}
@@ -24,23 +26,34 @@ Channel.prototype.addUser( user, role ) {
 	}
 }
 
-Channel.prototype.delUser( user ) {
+Channel.prototype.delUser = function( user ) {
 	delete this.users[ user.id ];
 }
 
-Channel.prototype.setUserRole( user, role ) {
+Channel.prototype.setUserRole = function( user, role ) {
 	if ( this.hasUser( user ) && Roles.indexOf( role ) != -1 )
 		this.users[ user.id ] = Roles.indexOf( role );
 }
-Channel.prototype.getUserRole( user ) {
+Channel.prototype.getUserRole = function( user ) {
 	if ( this.hasUser( user ) )
 		return this.users[ user.id ];
 	
 	return '';
 }
 
-Channel.prototype.hasUser( user ) {
+Channel.prototype.hasUser = function( user ) {
 	return ( this.users[ user.id ] !== undefined );
+}
+
+Channel.prototype.userList = function() {
+	return Object.keys( this.users );
+}
+
+Channel.prototype.topic = function (new_topic) {
+	var result = this.title;
+	if ( new_topic !== undefined && new_topic.trim() == '' )
+		this.title = new_topic;
+	return result;
 }
 
 exports.Channel = Channel;

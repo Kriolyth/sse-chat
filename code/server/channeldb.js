@@ -9,7 +9,7 @@ var Filter = require( './filter.js' ).Filter;
 var Channel = require( './channel.js' ).Channel;
 var ID = require( './id.js' ).ID;
 
-function createChannelDB() {
+function createChannelsDB() {
 		var channels = [];
 		
 		function findChan( filter ) {
@@ -59,6 +59,13 @@ function createChannelDB() {
 					channels[ chan.id ] = chan;
 					return true;
 				}
+			},
+			
+			findUserChannels: function( user ) {
+				if ( user['id'] === undefined ) return [];
+				return channels.filter( function _chanHasUser(chan) {
+					return chan.hasUser( user );
+				} );
 			}
 		}
 		

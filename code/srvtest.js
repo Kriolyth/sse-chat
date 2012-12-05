@@ -15,6 +15,7 @@ var router = require('./server/router.js').Router();
 var listener = require('./server/listener.js').Listener( router );
 var auth = require('./server/auth.js').AuthProcessor( router );
 var initiator = require('./server/initiator.js').Initiator( router );
+var chandb = require('./server/channeldb.js').ChannelsDB;
 
 function onGet( response, request ) {
 	util.puts( 'GET: ' + request.url );

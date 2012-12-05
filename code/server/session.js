@@ -33,7 +33,7 @@ Session.prototype.halfOpen = function( timeout ) {
 	this.openState = 1;
 	// SessionDB.update( this );
 	// TODO: encapsulate timeout into a closure
-	this.timeoutId = setTimeout( (function(session){ return function(){session.onClose();}})(this), timeout );
+	this.timeoutId = setTimeout( (function(session){ return function _SessionOnClose(){session.onClose();}})(this), timeout );
 }
 
 // Associate with a connection
@@ -44,9 +44,15 @@ Session.prototype.attach = function( socket ) {
 	delete this.timeoutId;
 	
 	this.keepAlive = new KeepAlive();
-	this.keepAlive.on( (function(obj){ return function(){ obj.push( new Msg.KeepAliveMsg() ); obj.send(); return true; } })(this) );
+	this.keepAlive.on( (function(obj) {
+			return function _KeepAlive() {
+				obj.push( new Msg.KeepAliveMsg() ); 
+				obj.send(); 
+				return true;
+			}
+		})(this) );
 	
-	socket.once( 'close', (function(session){ return function(){session.onClose();}})(this) );
+	socket.once( 'close', (function(session){ return function _SessionOnClose(){session.onClose();}})(this) );
 	this.socket = socket;
 }
 
@@ -72,7 +78,7 @@ Session.prototype.onClose = function() {
 }
 
 Session.prototype.addNotifyClose = function( func ) {
-	this.socket.once( 'close', function(x){ return function(){func(x);} }(this) );
+	this.socket.once( 'close', function(x){ return function _SessionCloseNotifier(){func(x);} }(this) );
 }
 
 Session.prototype.push = function( msg ) {
@@ -87,6 +93,9 @@ Session.prototype.send = function() {
 		
 		this.queue = [];
 		this.socket.write( res );
+		
+		if ( this.keepAlive )
+			this.keepAlive.reset();
 	}
 }
 
@@ -107,9 +116,14 @@ function createSessionDB() {
 			return undefined;
 		
 		var new_session;
+		var reuse_idx;
+		
 		new_session = (new Filter( { user: user.id } )).find( reusable );
-		if ( new_session ) {
-			reusable.slice( reusable.indexOf( new_session ), 1 );
+		if ( new_session )
+			reuse_idx = reusable.indexOf( new_session );
+		
+		if ( reuse_idx >= 0 ) {
+			reusable.splice( reuse_idx, 1 );
 			new_session.reset( new_session.id, user );
 		} else {
 			var id;
@@ -128,13 +142,13 @@ function createSessionDB() {
 		reusable.push( session );
 	}
 	
-	function updateSession( session ) {
+	/*function updateSession( session ) {
 		if ( session && session['id'] ) {
 			sessions[ session.id ] = session;
 			return true;
 		}		
 		return false;
-	}
+	} */
 	
 	return {
 		find: function( filter ) {
@@ -157,7 +171,15 @@ function createSessionDB() {
 		},
 		
 		update: function( session ) {
-			return updateSession( session );
+			//return updateSession( session );
+			return true;
+		},
+		
+		findUserSessions: function( users ) {
+			// list all active sessions for specified users
+			return sessions.filter( function(sess) {
+				return users.indexOf( sess.user ) != -1;
+			} );
 		}
 		
 	}

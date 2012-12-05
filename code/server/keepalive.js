@@ -10,7 +10,7 @@ function Keeper() {
 	this.curTick = 0;
 	this.maxTick = 0;
 	this.buckets = [];
-	this.rebuild( 10 );
+	this.rebuild( 15 );
 	
 	setInterval( (function(obj){ return function(){obj.tick();} })(this), 1000 );
 };
@@ -45,6 +45,12 @@ Keeper.prototype.add = function( callback ) {
 Keeper.prototype.remove = function( entry ) {
 	// we rely on auto-filter mechanism
 	entry.keepAlive = function(){ return false; }
+}
+Keeper.prototype.reset = function( entry ) {
+	if ( entry.bucket != this.curTick ) {
+		this.add( entry.callback );
+		this.remove( entry );
+	}
 }
 
 // Rebuilt buckets according to new maxTick
@@ -86,6 +92,10 @@ var KeepAlive = function () {
 		off: function() {
 			keeper.remove( entry );
 			entry = undefined;
+		},
+		reset: function() {
+			// postpone keep-alive signal to next round
+			keeper.reset( entry );
 		}
 	}
 
