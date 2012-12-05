@@ -16,6 +16,7 @@ var listener = require('./server/listener.js').Listener( router );
 var auth = require('./server/auth.js').AuthProcessor( router );
 var initiator = require('./server/initiator.js').Initiator( router );
 var chandb = require('./server/channeldb.js').ChannelsDB;
+var msgRouter = require('./server/msgrouter.js').MessageRouter( router );
 
 function onGet( response, request ) {
 	util.puts( 'GET: ' + request.url );

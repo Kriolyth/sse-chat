@@ -15,10 +15,11 @@ function createChannelsDB() {
 		function findChan( filter ) {
 			return (new Filter(filter)).find( channels );
 		}
-		function findUserChannels( user ) {
-			var result = channels.filter( function(entry) {
-					return entry.hasUser( user );
-				} );
+		function findChannelsForUser( user ) {
+			if ( user['id'] === undefined ) return [];
+			return channels.filter( function _ChanHasUser(chan) {
+				return chan.hasUser( user );
+			} );
 		}
 		
 		function addChan( host_user ) {
@@ -38,6 +39,10 @@ function createChannelsDB() {
 		return {
 			find: function( filter ) {
 				return findChan( filter );
+			},
+			
+			get: function( id ) {
+				return channels[ id ];
 			},
 			
 			add: function( chan ) {
@@ -62,10 +67,7 @@ function createChannelsDB() {
 			},
 			
 			findUserChannels: function( user ) {
-				if ( user['id'] === undefined ) return [];
-				return channels.filter( function _chanHasUser(chan) {
-					return chan.hasUser( user );
-				} );
+				return findChannelsForUser( user );
 			}
 		}
 		

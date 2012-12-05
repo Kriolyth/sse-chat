@@ -85,9 +85,9 @@ Session.prototype.push = function( msg ) {
 	this.queue.push( msg );
 }
 Session.prototype.send = function() {
-	if ( this.queue.length > 0 ) {	
+	if ( this.queue.length > 0 && ( this.socket !== null ) ) {
 		var res = '';
-		this.queue.forEach( function(msg) {
+		this.queue.forEach( function _SocketQueueMsgSerialize(msg) {
 				res += msg.serialize();
 			} );
 		
@@ -153,6 +153,10 @@ function createSessionDB() {
 	return {
 		find: function( filter ) {
 			return findSession( filter );
+		},
+		
+		get: function( id ) {
+			return sessions[ id ];
 		},
 		
 		add: function( user ) {

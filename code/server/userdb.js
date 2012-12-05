@@ -44,6 +44,10 @@ function createUserDB() {
 				return findUser( filter );
 			},
 			
+			get: function( id ) {
+				return users[ id ];
+			},
+			
 			add: function( user ) {
 				if ( !user['name'] ) return undefined;
 				if ( !findUser( { name: user.name } ) ) {

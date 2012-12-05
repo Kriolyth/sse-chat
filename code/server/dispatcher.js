@@ -10,11 +10,11 @@
 
 var Dispatcher = (function () {
 		// private scope
-		var emitter = require( 'events' ).EventEmitter;
+		var emitter = new (require( 'events' ).EventEmitter)();
 				
 		function onPush( sessions ) {
 			// send out the messages
-			sessions.forEach( function(entry) { entry.send(); } );
+			sessions.forEach( function _SessionQueueSend(entry) { entry.send(); } );
 		}
 		
 		// on creation actions

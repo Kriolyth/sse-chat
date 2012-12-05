@@ -41,7 +41,6 @@ function Router() {
 				httpVersion: request.httpVersion,
 				method: request.method,
 				url: request.url,
-				headers: request.headers,
 				detail : 'unroutable'
 			};
 			response.write( JSON.stringify( dump, undefined, '\t' ) );

@@ -73,8 +73,7 @@ function Initiator( router ) {
 			var dump = { status: 401,
 				httpVersion: request.httpVersion,
 				method: request.method,
-				url: request.url,
-				headers: request.headers }
+				url: request.url }
 			response.write( JSON.stringify( dump, undefined, '\t' ) );
 			response.end();
 			
