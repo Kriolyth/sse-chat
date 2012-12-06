@@ -15,8 +15,9 @@ var router = require('./server/router.js').Router();
 var listener = require('./server/listener.js').Listener( router );
 var auth = require('./server/auth.js').AuthProcessor( router );
 var initiator = require('./server/initiator.js').Initiator( router );
-var chandb = require('./server/channeldb.js').ChannelsDB;
+var channels = require('./server/channeldb.js').ChannelsDB;
 var msgRouter = require('./server/msgrouter.js').MessageRouter( router );
+var users = require('./server/userdb.js').UserDB;
 
 function onGet( response, request ) {
 	util.puts( 'GET: ' + request.url );
@@ -82,6 +83,14 @@ router.addHandler( { method: 'GET', url: '/' }, onGet );
 router.addHandler( { method: 'GET', url: { regex: '^/help' } }, onGet );
 router.addHandler( { method: 'GET', url: { match: '/post' } }, showForm );
 router.addHandler( { method: 'POST', url: { match: '/post' } }, onPost );
+
+var defaultChan = channels.add();
+
+function welcomeProc( session ) {
+	defaultChan.addUser( users.get( session.user ) );
+	// send chanEnter message
+}
+initiator.setWelcomeProc( welcomeProc );
 
 auth.setHalfopenTimeout( 60000 );
 

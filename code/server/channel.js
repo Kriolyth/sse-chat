@@ -55,5 +55,12 @@ Channel.prototype.topic = function (new_topic) {
 		this.title = new_topic;
 	return result;
 }
+Channel.prototype.serialize = function() {
+	return { 
+		id: this.id,
+		name: this.name,
+		title: this.title
+	};
+}
 
 exports.Channel = Channel;

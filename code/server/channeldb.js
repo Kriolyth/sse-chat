@@ -45,14 +45,9 @@ function createChannelsDB() {
 				return channels[ id ];
 			},
 			
-			add: function( chan ) {
-				if ( !chan['id'] ) return undefined;
-				if ( !findChan( { id: chan.id } ) ) {
-					// new channel, add one
-					var new_chan = addChan( chan );
-					return new_chan;
-				}
-				return false;
+			add: function( host_user ) {
+				// new channel, add one
+				return addChan( host_user );
 			},
 			
 			update: function( chan ) {				

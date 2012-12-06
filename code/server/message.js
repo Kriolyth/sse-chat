@@ -22,7 +22,7 @@ function UserMsg( channel, from, msg ) {
 UserMsg.prototype.serialize = function() {
 	return 'id: ' + this.id + 
 		'\nevent: ' + this.channel +
-		'\ndata: ' + JSON.toString( { 
+		'\ndata: ' + JSON.stringify( { 
 			ts: this.ts,
 			user: this.user,
 			msg: this.msg 
@@ -37,7 +37,7 @@ function HistoryMsg( channel, from, msg, timestamp ) {
 }
 HistoryMsg.prototype.serialize = function() {
 	return 'event: ' + this.channel +
-		'\ndata: ' + JSON.toString( { 
+		'\ndata: ' + JSON.stringify( { 
 			ts: this.ts,
 			user: this.user,
 			msg: this.msg 
@@ -51,14 +51,21 @@ function SysMsg( channel, command, msg ) {
 }
 SysMsg.prototype.serialize = function() {
 	return 'event: ' + this.channel +
-		'\ndata: ' + JSON.toString( { 
+		'\ndata: ' + JSON.stringify( { 
 			cmd: this.command,
 			msg: this.msg 
 		} ) + '\n\n';	
 }
 
+function ServiceMsg( msg ) {
+	this.msg = ( msg ? msg : '' );
+}
+ServiceMsg.prototype.serialize = function() {
+	return 'event: sv\ndata: ' + JSON.stringify( this.msg ) + '\n\n';	
+}
 
 exports.KeepAliveMsg = KeepAliveMsg;
 exports.UserMsg = UserMsg;
 exports.HistoryMsg = HistoryMsg;
 exports.SysMsg = SysMsg;
+exports.ServiceMsg = ServiceMsg;
