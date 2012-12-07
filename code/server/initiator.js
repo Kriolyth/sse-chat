@@ -46,25 +46,13 @@ function Initiator( router ) {
 			
 			if ( welcomeProc )
 				welcomeProc( sess );
+			else {
+				// Probably, setup a new channel for the new user
+				// or maybe do nothing and let client side
+				// display a help message or a list of available
+				// public channels
+			}
 			
-			/* 
-				This is a sample how the code could go next
-				
-			if ( !welcomeProc ) {
-				var chans = Channels.find( { user: sess.user } );
-				if ( chans.length == 0 ) {
-					// no channels, open a personal channel for user
-					Channels.add( { host: sess, public: false } );
-					sess.push( SysMsg.help( 'chan' ) );
-				} else {
-					// send a list of all channels the user has attended
-					Channels.sendList( chans, sess );
-				}
-			} else {
-				welcomeProc( sess );
-			}			
-			
-			*/
 			
 			return true;
 			

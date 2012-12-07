@@ -18,6 +18,8 @@ var initiator = require('./server/initiator.js').Initiator( router );
 var channels = require('./server/channeldb.js').ChannelsDB;
 var msgRouter = require('./server/msgrouter.js').MessageRouter( router );
 var users = require('./server/userdb.js').UserDB;
+var actions = require('./server/actions.js');
+var helpmsg = require('./server/helpmsg.js').HelpMsg;
 
 function onGet( response, request ) {
 	util.puts( 'GET: ' + request.url );
@@ -87,8 +89,18 @@ router.addHandler( { method: 'POST', url: { match: '/post' } }, onPost );
 var defaultChan = channels.add();
 
 function welcomeProc( session ) {
-	defaultChan.addUser( users.get( session.user ) );
-	// send chanEnter message
+	var user = users.get( session.user );
+	var userchans = channels.findUserChannels( user );
+	if ( userchans.length > 0 ) {
+		userchans.forEach( function _UserChansEnter(chan){
+				actions.enterChannel( user, chan );
+				// TODO: loadHistory
+			} );
+		}
+	} else {
+		// no channels for user 
+		actions.joinChannel( user, defaultChan );
+	}
 }
 initiator.setWelcomeProc( welcomeProc );
 

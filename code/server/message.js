@@ -30,9 +30,9 @@ UserMsg.prototype.serialize = function() {
 }
 
 function HistoryMsg( channel, from, msg, timestamp ) {
-	this.channel = channel;
+	this.channel = channel.name;
 	this.ts = timestamp;
-	this.user = from;
+	this.user = from.name;
 	this.msg = msg;
 }
 HistoryMsg.prototype.serialize = function() {
@@ -45,7 +45,7 @@ HistoryMsg.prototype.serialize = function() {
 }
 
 function SysMsg( channel, command, msg ) {
-	this.channel = channel;
+	this.channel = channel.id;
 	this.command = command;
 	this.msg = ( msg ? msg : '' );
 }
