@@ -18,7 +18,7 @@ function joinChannel( user, channel ) {
 
 function enterChannel( user, channel ) {
 	// send service message to all user sessions
-	var userMsg = messages.ServiceMsg( { 
+	var userMsg = new messages.ServiceMsg( { 
 		event: 'chanjoin',
 		data: channel.serialize()
 		} );
@@ -26,7 +26,7 @@ function enterChannel( user, channel ) {
 	usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
 	
 	// send "entered" message to all users on channel
-	var chanMsg = messages.SysMsg( channel, 'joined', { user: user.name } );
+	var chanMsg = new messages.SysMsg( channel, 'joined', { user: user.name } );
 	var chansess = sessions.findUserSessions( channel.userList() );
 	chansess.forEach( function _ChanPushMsg(s){ s.push( chanMsg ); } );
 	
