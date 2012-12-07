@@ -21,7 +21,7 @@ function enterChannel( user, channel ) {
 	var userMsg = messages.ServiceMsg( { 
 		event: 'chanjoin',
 		data: channel.serialize()
-		}
+		} );
 	var usersess = sessions.findUserSessions( [ user.id ] );
 	usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
 	

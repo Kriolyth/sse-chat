@@ -10,13 +10,15 @@ var welcomeMsg = 'Добро пожаловать в Уютный Чатик&tm;!';
 var newPinMsg = 'Запомните ваш новый пин-код: %s';
 var chanHelpMsg = 'Channel help';
 
-var HelpMsg = {
-	'welcome' : welcomeHelp,
-	'new_pin' : newPinMsg,
-	'chan' : chanHelpMsg
+function HelpMsg() {
+	this.messages = {
+		'welcome' : welcomeMsg,
+		'new_pin' : newPinMsg,
+		'chan' : chanHelpMsg
+	};
 };
 
-HelpMsg.prototype.msg( name, channel ) {
+HelpMsg.prototype.msg = function( name, channel ) {
 	var msg = ( this[name] ? this[name] : ( 'no_message ' + name ) );
 	
 	// if there are arguments supplied, perform a call to 'format'
@@ -27,4 +29,6 @@ HelpMsg.prototype.msg( name, channel ) {
 	return (new Messages.SysMsg( channel, 'info', msg ) );
 }
 
-exports.HelpMsg = HelpMsg;
+var helpMsg = HelpMsg();
+
+exports.HelpMsg = helpMsg;

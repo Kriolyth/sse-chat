@@ -18,7 +18,7 @@ var initiator = require('./server/initiator.js').Initiator( router );
 var channels = require('./server/channeldb.js').ChannelsDB;
 var msgRouter = require('./server/msgrouter.js').MessageRouter( router );
 var users = require('./server/userdb.js').UserDB;
-var actions = require('./server/actions.js');
+var actions = require('./server/action.js');
 var helpmsg = require('./server/helpmsg.js').HelpMsg;
 
 function onGet( response, request ) {
@@ -95,8 +95,7 @@ function welcomeProc( session ) {
 		userchans.forEach( function _UserChansEnter(chan){
 				actions.enterChannel( user, chan );
 				// TODO: loadHistory
-			} );
-		}
+		} );
 	} else {
 		// no channels for user 
 		actions.joinChannel( user, defaultChan );
