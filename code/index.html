@@ -3,22 +3,22 @@
 <head>
   <meta charset="utf-8" />
   <title>Help on help</title>
-  <script type="text/javascript" src="eventsource.js"></script>
   <script type="text/javascript" src="date.format.js"></script>
   <script type="text/javascript">
-	var chatSession = { id: 0, name: '' };
+	var chatSession = { id: 0, user: 0, name: '' };
+	var channels = {};
 	var server_host = '';
 	var msgHandlers = [];
-	var default_title = 'Help on help';
+	var default_title;
 	var msg_counter = 0;
 	var is_active = true;
 	
 	function loadSession() {
 		var prefix = 'ambichat_';
-		var id = localStorage.getItem( prefix + 'id' );
+		var user = localStorage.getItem( prefix + 'id' );
 		var name = localStorage.getItem( prefix + 'name' );
-		if ( name && name != '' && id && id != '' ) {
-			chatSession.id = parseInt( id );
+		if ( name && name != '' && user && user != '' ) {
+			chatSession.user = parseInt( user );
 			chatSession.name = name;
 			return true;
 		}
@@ -27,8 +27,8 @@
 	
 	function saveSession() {
 		var prefix = 'ambichat_';
-		if ( chatSession.name != '' && chatSession.id != 0 ) {
-			localStorage.setItem( prefix + 'id',   chatSession.id );
+		if ( chatSession.name != '' && chatSession.user != 0 ) {
+			localStorage.setItem( prefix + 'id',   chatSession.user );
 			localStorage.setItem( prefix + 'name', chatSession.name );
 		}
 	}
@@ -37,27 +37,33 @@
 		localStorage.clear();
 	}
 	
-	function auth() {
+	function presentLoginForm() {
+		var form = document.getElementById('loginForm');
+		form.elements['id'].value = id;
+		form.elements['name'].value = name;		
+	}
+	
+	function auth( authData ) {
 		if ( 0 == chatSession.id ) 
 			chatSession.name = document.getElementById('name').value;
 		
 		var xhr = new XMLHttpRequest();		
-		xhr.open('POST', server_host + 'server/auth?id=' + encodeURIComponent( chatSession.id ) +
+		xhr.open('POST', server_host + 'server/auth?id=' + encodeURIComponent( chatSession.user ) +
 			'&name=' + encodeURIComponent( chatSession.name ), true);
 		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
-				if ( xhr.status == 200 ) authOk( xhr.responseText );
-				else if ( xhr.status != 0 ) noAuth( xhr.responseText );
+				if ( xhr.status == 200 ) authOk( eval(xhr.responseText) );
+				else if ( xhr.status != 0 ) noAuth( eval(xhr.responseText) );
 			}
 		};
-		xhr.send(null);
+		xhr.send( encodeFormData( authData ) );
 		
 		return false;
 	}
 	
 	function authOk( response ) {
-		chatSession.id = parseInt( response );
+		chatSession.id = parseInt( response.id );
 		if ( !chatSession.id ) return;
 		document.getElementById( 'login' ).style.visibility = 'hidden';
 		document.getElementById( 'chat' ).style.visibility = 'visible';
@@ -84,6 +90,14 @@
 		}
 
 		return pairs.join('&');
+	}
+	function convertFormToObject( form ) {
+		var obj = {};
+		for ( var i in form.elements ) {
+			if ( form.elements[i]['name'] !== undefined && form.elements[i].name != '' )
+				obj[ form.elements[i].name ] = form.elements[i].value;
+		}
+		return obj;
 	}
 
     var lastSentMessageId = Infinity,
@@ -179,7 +193,11 @@
 	}
 
     function onDomReady() {
-		if ( loadSession() ) auth();
+		default_title = document.title;
+		if ( loadSession() ) {
+			//auth();
+			presentLoginForm();
+		}
 		
 		setTimeout( function() {
 			document.getElementById('message').onkeypress = function() {
@@ -268,6 +286,8 @@
   </style>
 </head>
 <body>
+	<div id="tabs">
+	</div>
 	<div id="chat">
 		<div id="msgs"></div>
 		<form action="?" onsubmit="return post();"><fieldset>
@@ -276,8 +296,11 @@
 		</fieldset></form>
 	</div>
 	<div id="login">
-		<form action="?" onsubmit="return auth();"><fieldset>
-			<label>Ваше имя: <input type="text" name="name" id="name" required /></label><input id="login_submit" type="submit" value="Ок" />
+		<form action="?" onsubmit="return auth(convertFormToObject(this.form));" id="loginForm"><fieldset>
+			<label>Войти как: <input type="text" name="name" id="name" required /></label>
+			<label>Пин: <input type="text" name="pin" id="pin" size="5" maxlength="4" value=""/></label>
+			<input type="hidden" name="id" value="0" /></label>
+			<input id="login_submit" type="submit" value="Ок" />
 		</fieldset></form>
 	</div>
 	
