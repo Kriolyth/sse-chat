@@ -48,33 +48,40 @@
 			chatSession.name = document.getElementById('name').value;
 		
 		var xhr = new XMLHttpRequest();		
-		xhr.open('POST', server_host + 'server/auth?id=' + encodeURIComponent( chatSession.user ) +
-			'&name=' + encodeURIComponent( chatSession.name ), true);
-		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-				if ( xhr.status == 200 ) authOk( eval(xhr.responseText) );
-				else if ( xhr.status != 0 ) noAuth( eval(xhr.responseText) );
-			}
-		};
+		xhr.open( 'POST', server_host + 'server/auth', true );
+		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
+		xhr.onreadystatechange = (function _wrapXhr(x){ return function(){authProc(x);} })(xhr);
 		xhr.send( encodeFormData( authData ) );
 		
 		return false;
 	}
 	
+	function authProc( xhr ) {
+		if ( xhr.readyState === 4 && xhr.status == 200 ) {
+			var response = JSON.parse( xhr.responseText );
+			
+			if ( response.ok ) authOk( response );
+			else authErr( response );
+		}
+	};
+	
 	function authOk( response ) {
-		chatSession.id = parseInt( response.id );
-		if ( !chatSession.id ) return;
-		document.getElementById( 'login' ).style.visibility = 'hidden';
-		document.getElementById( 'chat' ).style.visibility = 'visible';
+		if ( !response['session'] ) return;
+		chatSession.id = response.session;
+		chatSession.user = response.user;
+		chatSession.name = response.username;
+		panelSwitch( 'chat' );
+		
+		if ( response['pin'] )
+			showPin( response.pin );
 		
 		saveSession();
 		startListener();
 	}
-	function noAuth( response ) {
+	function authErr( response ) {
 		chatSession.id = 0;
-		document.getElementById( 'login' ).style.visibility = 'visible';
-		document.getElementById( 'chat' ).style.visibility = 'hidden';
+		
+		panelSwitch( 'login' );
 	}
 
 	function encodeFormData(data) {
@@ -98,6 +105,23 @@
 				obj[ form.elements[i].name ] = form.elements[i].value;
 		}
 		return obj;
+	}
+	
+	function panelSwitch( panel ) {
+		switch( panel ) {
+			case 'chat':
+				document.getElementById( 'chat' ).style.visibility = 'visible';
+				document.getElementById( 'tabs' ).style.visibility = 'visible';
+				document.getElementById( 'login' ).style.visibility = 'hidden';
+				break;
+			case 'login':
+				document.getElementById( 'chat' ).style.visibility = 'hidden';
+				document.getElementById( 'tabs' ).style.visibility = 'hidden';
+				document.getElementById( 'login' ).style.visibility = 'visible';
+				break;
+			default:
+				// TODO: tab processing
+		}
 	}
 
     var lastSentMessageId = Infinity,
