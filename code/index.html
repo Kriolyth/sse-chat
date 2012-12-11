@@ -44,14 +44,15 @@
 	}
 	
 	function auth( authData ) {
-		if ( 0 == chatSession.id ) 
-			chatSession.name = document.getElementById('name').value;
-		
 		var xhr = new XMLHttpRequest();		
 		xhr.open( 'POST', server_host + 'server/auth', true );
 		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
 		xhr.onreadystatechange = (function _wrapXhr(x){ return function(){authProc(x);} })(xhr);
-		xhr.send( encodeFormData( authData ) );
+		
+		var dataObj = encodeObject( authData );
+		console.log( 'auth string: ' + dataObj );
+		console.log( 'auth object:: ' + JSON.stringify( dataObj ) );
+		xhr.send( dataObj );
 		
 		return false;
 	}
@@ -84,7 +85,7 @@
 		panelSwitch( 'login' );
 	}
 
-	function encodeFormData(data) {
+	function encodeObject(data) {
 		if(!data) return false;
 		var pairs = [],
 			regexp = /%20/g;
@@ -133,7 +134,7 @@
       }
     }
 	
-	function addMsgHandler( msg ) {
+	function makeChannelEntry( msg ) {
 		var div = document.createElement('div'),
 			timestamp = document.createElement( 'div' ),
 			author = document.createElement( 'div' ),
@@ -159,9 +160,26 @@
 		div.appendChild( text );
 		
 		div.className = msg.owner;
-		msgs.appendChild( div );
-		div.scrollIntoView();
+		/*msgs.appendChild( div );
+		div.scrollIntoView(); */
+		
+		return div;
 	}
+	
+	function onUserMessage( msg ) {
+		var ch = channels[ msg.channel ];
+		if ( ch === undefined ) return;
+		
+		// add to channel history
+		switch ( typeof( ch.history[ msg.ts ] ) ) {
+			case 'undefined': ch.history[ msg.ts ] = msg; break;
+			case 'string': ch.history[ msg.ts ] = [ ch.history[ msg.ts ], msg ]; break;
+			case 'array': ch.history.push( msg ); break;
+		}
+		ch.addToView( msg, makeChannelEntry( msg ) );
+		
+	}
+	
 	
 	function visibilityChange() {
 		if ( !( document.hidden || !is_active ) ) {
@@ -253,7 +271,7 @@
 			}
 		};
 		// Message text is sent in POST body
-		xhr.send( encodeFormData( { message: message } ) );
+		xhr.send( encodeObject( { message: message } ) );
 
 		document.getElementById('message').value = '';
 		return false;
