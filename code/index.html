@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <title>Help on help</title>
   <script type="text/javascript" src="date.format.js"></script>
+  <script type="text/javascript" src="client/settings.js"></script>
+  <script type="text/javascript" src="client/channel.js"></script>
   <script type="text/javascript">
 	var chatSession = { id: 0, user: 0, name: '' };
 	var channels = {};
@@ -12,30 +14,6 @@
 	var default_title;
 	var msg_counter = 0;
 	var is_active = true;
-	
-	function loadSession() {
-		var prefix = 'ambichat_';
-		var user = localStorage.getItem( prefix + 'id' );
-		var name = localStorage.getItem( prefix + 'name' );
-		if ( name && name != '' && user && user != '' ) {
-			chatSession.user = parseInt( user );
-			chatSession.name = name;
-			return true;
-		}
-		return false;
-	}
-	
-	function saveSession() {
-		var prefix = 'ambichat_';
-		if ( chatSession.name != '' && chatSession.user != 0 ) {
-			localStorage.setItem( prefix + 'id',   chatSession.user );
-			localStorage.setItem( prefix + 'name', chatSession.name );
-		}
-	}
-	
-	function clearSession() {
-		localStorage.clear();
-	}
 	
 	function presentLoginForm() {
 		var form = document.getElementById('loginForm');
@@ -63,6 +41,12 @@
 			
 			if ( response.ok ) authOk( response );
 			else authErr( response );
+		} else if ( xhr.readyState === 4 ) {
+			var response = JSON.parse( xhr.responseText );
+			if ( response != '' )
+				showLoginError( 'Server says "' + response + '", but we have no idea what that means' );
+			else
+				showLoginError( 'Sorry, we have no idea what just happened' );
 		}
 	};
 	
@@ -71,18 +55,22 @@
 		chatSession.id = response.session;
 		chatSession.user = response.user;
 		chatSession.name = response.username;
-		panelSwitch( 'chat' );
+		Settings.user = chatSession.user;
+		Settings.name = chatSession.name;
+		
+		switchPanel( 'chat' );
 		
 		if ( response['pin'] )
 			showPin( response.pin );
 		
-		saveSession();
+		Setttings.save();
 		startListener();
 	}
 	function authErr( response ) {
 		chatSession.id = 0;
 		
-		panelSwitch( 'login' );
+		switchPanel( 'login' );
+		showLoginError( response.message );
 	}
 
 	function encodeObject(data) {
@@ -108,7 +96,7 @@
 		return obj;
 	}
 	
-	function panelSwitch( panel ) {
+	function switchPanel( panel ) {
 		switch( panel ) {
 			case 'chat':
 				document.getElementById( 'chat' ).style.visibility = 'visible';
@@ -122,6 +110,15 @@
 				break;
 			default:
 				// TODO: tab processing
+		}
+	}
+	function showLoginError( message ) {
+		var msgNode = document.createTextNode( message );
+		var errorNode = document.getElementById( 'loginError' );
+		if ( errorNode.hasChildNodes() ) {
+			errorNode.replaceChild( msgNode, errorNode.firstChild );
+		} else {
+			errprMpde.appendChild( msgNode );
 		}
 	}
 
@@ -343,6 +340,7 @@
 			<label>Пин: <input type="text" name="pin" id="pin" size="5" maxlength="4" value=""/></label>
 			<input type="hidden" name="id" value="0" /></label>
 			<input id="login_submit" type="submit" value="Ок" />
+			<p id="loginError"></p>
 		</fieldset></form>
 	</div>
 	
