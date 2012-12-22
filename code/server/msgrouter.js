@@ -1,7 +1,8 @@
 /*
-	SSE Initiator
+	Message Router
 	
-	Handles connection request to SSE socket (the GET query)
+	Routes messages to their handlers.
+	Also provides a default (and most common) "user message".
 */
 
 var url = require( 'url' );
@@ -50,7 +51,7 @@ function MessageRouter( router ) {
 		if ( session === undefined )
 			return notAuth( response );
 		
-		// TODO: add extra layer of authorisation by using
+		// TODO: add extra layer of authentication by using
 		// timed secret codes sent via SSE channel
 		
 		if ( !process( response, session, qs ) )
