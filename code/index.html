@@ -118,8 +118,12 @@
 		if ( errorNode.hasChildNodes() ) {
 			errorNode.replaceChild( msgNode, errorNode.firstChild );
 		} else {
-			errprMpde.appendChild( msgNode );
+			errorNode.appendChild( msgNode );
 		}
+	}
+	
+	function showPin( pin ) {
+		alert( 'Ваш пин: ' + pin );
 	}
 
     var lastSentMessageId = Infinity,
@@ -167,13 +171,9 @@
 		var ch = channels[ msg.channel ];
 		if ( ch === undefined ) return;
 		
-		// add to channel history
-		switch ( typeof( ch.history[ msg.ts ] ) ) {
-			case 'undefined': ch.history[ msg.ts ] = msg; break;
-			case 'string': ch.history[ msg.ts ] = [ ch.history[ msg.ts ], msg ]; break;
-			case 'array': ch.history.push( msg ); break;
-		}
-		ch.addToView( msg, makeChannelEntry( msg ) );
+		ch.addMessage( msg );
+		if ( activeChan == ch.id )		
+			addToView( makeChannelEntry( msg ) );
 		
 	}
 	
