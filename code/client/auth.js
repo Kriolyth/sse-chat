@@ -23,16 +23,36 @@ Auth.prototype.handleXhr = function( xhr ) {
 		var response = JSON.parse( xhr.responseText );
 		
 		if ( response.ok ) 
-			this.ok( response );
+			this.handleOk( response );
 		else 
-			this.err( response );
+			this.handleErr( response );
 	} else if ( xhr.readyState === 4 ) {
-		this.fatal( xhr.responseText );
+		this.handleFatal( xhr.responseText );
 		/*if ( response != '' )
 			fatal( 'Server says "' + response + '", but we have no idea what that means' );
 		else
 			showLoginError( 'Sorry, we have no idea what just happened' ); // */
 	}
+}
+
+Auth.prototype.handleOk = function( response ) {
+	
+	this.ok( response );
+
+}
+
+Auth.prototype.handleErr = function( response ) {
+	
+	this.err( response );
+}
+
+Auth.prototype.handleFatal = function( response ) {
+	if ( response != '' )
+		console.log( 'Server says "' + response + '", but we have no idea what that means' );
+	else
+		console.log( 'Sorry, we have no idea what just happened' ); // */
+	
+	this.fatal( response );
 }
 
 Auth.prototype.defaultHandler = function( response ) {
