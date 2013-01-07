@@ -10,11 +10,12 @@ Auth.prototype.auth = function( pin ) {
 	xhr.onreadystatechange = (function _wrapXhr(t,x){ return function(){t.handleXhr(x);} })(this,xhr);
 	
 	var authData = { id: this.creds.id, name: this.creds.name };
+	var dataObj = encodeObject( authData );
 	console.log( 'auth string: ' + dataObj );
 	if ( pin !== unassigned )
 		authData.pin = pin;
 		
-	var dataObj = encodeObject( authData );
+	dataObj = encodeObject( authData );
 	xhr.send( dataObj );
 }
 
@@ -28,10 +29,6 @@ Auth.prototype.handleXhr = function( xhr ) {
 			this.handleErr( response );
 	} else if ( xhr.readyState === 4 ) {
 		this.handleFatal( xhr.responseText );
-		/*if ( response != '' )
-			fatal( 'Server says "' + response + '", but we have no idea what that means' );
-		else
-			showLoginError( 'Sorry, we have no idea what just happened' ); // */
 	}
 }
 
