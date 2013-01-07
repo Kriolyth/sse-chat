@@ -1,7 +1,7 @@
 /*
 	Message types
 	
-	Just the messages se'd send over the net.
+	Just the messages we'd send over the net.
 	The most important thing they differ is the serialization func.
 */
 
@@ -12,7 +12,7 @@ KeepAliveMsg.prototype.serialize = function() {
 }
 
 function UserMsg( channel, from, msg ) {
-	var ts = (new Data()).getTime();
+	var ts = (new Date()).getTime();
 	this.id = ts;
 	this.channel = channel.name;
 	this.ts = ts;
