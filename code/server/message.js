@@ -14,7 +14,7 @@ KeepAliveMsg.prototype.serialize = function() {
 function UserMsg( channel, from, msg ) {
 	var ts = (new Date()).getTime();
 	this.id = ts;
-	this.channel = channel.name;
+	this.channel = channel.id;
 	this.ts = ts;
 	this.user = from.name;
 	this.msg = msg;
@@ -30,7 +30,7 @@ UserMsg.prototype.serialize = function() {
 }
 
 function HistoryMsg( channel, from, msg, timestamp ) {
-	this.channel = channel.name;
+	this.channel = channel.id;
 	this.ts = timestamp;
 	this.user = from.name;
 	this.msg = msg;

@@ -11,6 +11,7 @@ var Sessions = require( './session.js' ).Sessions;
 var Channels = require( './channeldb.js' ).ChannelsDB;
 var Messages = require( './message.js' );
 var QueryString = require( 'querystring' );
+var Users = require('./userdb.js').UserDB;
 
 var Dispatcher = require( './dispatcher.js' ).Dispatcher;
 
@@ -55,14 +56,16 @@ function MessageRouter( router ) {
 		// timed secret codes sent via SSE channel
 		
 		if ( !process( response, session, qs ) )
-			defaultHandler( response, session, query );
+			defaultHandler( response, session, qs );
 		
 		return true;
 	}
 	
 	function defaultHandler( response, session, query ) {
-		if ( !query[ 'chan' ] || !query[ 'msg' ] )
+		if ( !query[ 'chan' ] || !query[ 'msg' ] ) {
+			require('util').puts( 'Inv request: ' + JSON.stringify( query ) );
 			return invalidRequest( response );
+		}
 		
 		var chan = Channels.get( query.chan );
 		var user = Users.get( session.user );
@@ -72,7 +75,8 @@ function MessageRouter( router ) {
 		// post message to the channel
 		var chanUsers = chan.userList();
 		var userSessions = Sessions.findUserSessions( chanUsers );
-		var msg = new Messages.UserMsg( chan, user, text );
+		var msg = new Messages.UserMsg( chan, user, query.msg );
+		require('util').puts( 'For ' + userSessions.length + ' sessions send ' + JSON.stringify( msg ) );
 		userSessions.forEach( function _PostToUserSession(userSession) {
 			userSession.push( msg );
 		} );
