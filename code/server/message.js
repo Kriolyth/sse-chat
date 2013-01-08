@@ -21,11 +21,11 @@ function UserMsg( channel, from, msg ) {
 }
 UserMsg.prototype.serialize = function() {
 	return 'id: ' + this.id + 
-		'\nevent: ' + this.channel +
 		'\ndata: ' + JSON.stringify( { 
 			ts: this.ts,
 			user: this.user,
-			msg: this.msg 
+			channel: this.channel,
+			msg: this.msg
 		} ) + '\n\n';	
 }
 
@@ -36,10 +36,10 @@ function HistoryMsg( channel, from, msg, timestamp ) {
 	this.msg = msg;
 }
 HistoryMsg.prototype.serialize = function() {
-	return 'event: ' + this.channel +
-		'\ndata: ' + JSON.stringify( { 
+	return 'data: ' + JSON.stringify( { 
 			ts: this.ts,
 			user: this.user,
+			channel: this.channel,
 			msg: this.msg 
 		} ) + '\n\n';	
 }
@@ -50,9 +50,10 @@ function SysMsg( channel, command, msg ) {
 	this.msg = ( msg ? msg : '' );
 }
 SysMsg.prototype.serialize = function() {
-	return 'event: ' + this.channel +
+	return 'event: cmd' +
 		'\ndata: ' + JSON.stringify( { 
 			cmd: this.command,
+			channel: this.channel,
 			msg: this.msg 
 		} ) + '\n\n';	
 }
