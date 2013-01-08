@@ -46,7 +46,9 @@ Channel.prototype.hasUser = function( user ) {
 }
 
 Channel.prototype.userList = function() {
-	return Object.keys( this.users );
+	var list = Object.keys( this.users ).map( function(x){ return parseInt(x); } );
+	
+	return list;
 }
 
 Channel.prototype.topic = function (new_topic) {

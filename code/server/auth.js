@@ -131,11 +131,11 @@ function AuthProcessor( router ) {
 					'Content-Type': 'text/plain',
 				} );
 			var dump = { status: 404,
-				httpVersion: request.httpVersion,
+				/*httpVersion: request.httpVersion,
 				method: request.method,
 				url: request.url,
-				headers: request.headers,
-				detail: detail }
+				headers: request.headers, */
+				detail: detail };
 			response.write( JSON.stringify( dump, undefined, '\t' ) );
 			response.end();
 			

@@ -11,6 +11,8 @@ var messages = require( './message.js' );
 
 var dispatcher = require( './dispatcher.js' ).Dispatcher;
 
+var util = require('util');
+
 function joinChannel( user, channel ) {
 	channel.addUser( user );
 	
@@ -19,6 +21,7 @@ function joinChannel( user, channel ) {
 		event: 'join',
 		data: channel.serialize()
 		} );
+	
 	var usersess = sessions.findUserSessions( [ user.id ] );
 	usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
 	dispatcher.queue( usersess );
@@ -46,7 +49,7 @@ function enterChannel( user, channel ) {
 	var chansess = sessions.findUserSessions( channel.userList() );
 	chansess.forEach( function _ChanPushMsg(s){ s.push( chanMsg ); } );
 	
-	 dispatcher.queue( chansess );
+	dispatcher.queue( chansess );
 }
 
 function exitChannel( user, channel ) {
@@ -55,7 +58,7 @@ function exitChannel( user, channel ) {
 	var chansess = sessions.findUserSessions( channel.userList() );
 	chansess.forEach( function _ChanPushMsg(s){ s.push( chanMsg ); } );
 	
-	 dispatcher.queue( usersess.concat( chansess ) );
+	dispatcher.queue( usersess.concat( chansess ) );
 }
 
 

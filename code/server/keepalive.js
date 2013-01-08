@@ -29,7 +29,8 @@ Keeper.prototype.tick = function () {
 		// tracked no more
 		this.buckets[ this.curTick ] = 
 			this.buckets[ this.curTick ].filter( function(entry) {
-				return entry.keepAlive();
+				if ( entry.keepAlive ) return entry.keepAlive();
+				else return false;
 			} );
 	}
 }

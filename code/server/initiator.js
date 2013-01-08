@@ -43,7 +43,7 @@ function Initiator( router ) {
 			} );
 			response.write( ': Welcome aboard!\nretry: 15000\n\n' );
 			sess.attach( response );
-			
+
 			if ( welcomeProc )
 				welcomeProc( sess );
 			else {

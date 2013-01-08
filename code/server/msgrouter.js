@@ -44,7 +44,7 @@ function MessageRouter( router ) {
 	function onMsg( response, request, body ) {
 		// parse request body
 		var qs = QueryString.parse( body );
-		if ( qs[id] === undefined )
+		if ( qs['id'] === undefined )
 			return invalidRequest( response );
 		
 		var session = Sessions.get( qs.id );
