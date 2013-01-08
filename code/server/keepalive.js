@@ -29,8 +29,9 @@ Keeper.prototype.tick = function () {
 		// tracked no more
 		this.buckets[ this.curTick ] = 
 			this.buckets[ this.curTick ].filter( function(entry) {
-				if ( entry.keepAlive ) return entry.keepAlive();
-				else return false;
+				//if ( entry.keepAlive ) return entry.keepAlive();
+				//else return false;
+				return entry.keepAlive();
 			} );
 	}
 }
@@ -43,15 +44,20 @@ Keeper.prototype.add = function( callback ) {
 	
 	return entry;
 }
+function KeepAliveOff() {
+	return false;
+}
 Keeper.prototype.remove = function( entry ) {
 	// we rely on auto-filter mechanism
-	entry.keepAlive = function(){ return false; }
+	entry.keepAlive = KeepAliveOff;
 }
 Keeper.prototype.reset = function( entry ) {
 	if ( entry.bucket != this.curTick ) {
-		this.add( entry.callback );
+		var new_entry = this.add( entry.keepAlive );
 		this.remove( entry );
-	}
+		return new_entry;
+	} else 
+		return entry;
 }
 
 // Rebuilt buckets according to new maxTick
@@ -79,7 +85,7 @@ Keeper.prototype.rebuild = function( maxTick ) {
 
 var keeper = new Keeper();
 
-var KeepAlive = function () {
+function KeepAlive() {
 	// private scope
 	var entry;
 	
@@ -96,7 +102,8 @@ var KeepAlive = function () {
 		},
 		reset: function() {
 			// postpone keep-alive signal to next round
-			keeper.reset( entry );
+			if ( entry )
+				entry = keeper.reset( entry );
 		}
 	}
 

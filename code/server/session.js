@@ -43,7 +43,7 @@ Session.prototype.attach = function( socket ) {
 	clearTimeout( this.timeoutId );
 	delete this.timeoutId;
 	
-	this.keepAlive = new KeepAlive();
+	this.keepAlive = KeepAlive();
 	this.keepAlive.on( (function(obj) {
 			return function _KeepAlive() {
 				obj.push( new Msg.KeepAliveMsg() ); 
@@ -116,7 +116,7 @@ function createSessionDB() {
 			return undefined;
 		
 		var new_session;
-		var reuse_idx;
+		var reuse_idx = -1;
 		
 		new_session = (new Filter( { user: user.id } )).find( reusable );
 		if ( new_session )
@@ -138,7 +138,7 @@ function createSessionDB() {
 	
 	function removeSession( session ) {
 		// mark session as reusable instead of removing
-		sessions[ session.id ] = session;
+		delete sessions[ session.id ];
 		reusable.push( session );
 	}
 	

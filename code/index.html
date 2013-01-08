@@ -35,6 +35,7 @@
 		Settings.user = chatSession.user;
 		Settings.name = chatSession.name;
 		
+		alert( chatSession.id );
 		switchPanel( 'chat' );
 		
 		if ( response['pin'] )
@@ -165,6 +166,8 @@
 					channels[ ch.id ] = ch;
 				}
 				ch.join();
+				if ( active_chan == null )
+					switchChannel( ch.id );
 				updateChannelTabs();
 				break;
 			case 'leave':
@@ -255,9 +258,6 @@
 	function startListener() {
 		if ( 0 == chatSession.id ) return false;
 		
-		//msgHandlers[ 'msgAdd' ] = addMsgHandler;
-		//msgHandlers[ 'visChange' ] = offscreenMsgHandler;
-		
 		window.onfocus = onFocus;
 		window.onblur = onBlur;
 		document.addEventListener( 'visibilitychange', visibilityChange );
@@ -277,6 +277,7 @@
 		var ch = channels[ id ];
 		if ( ch === undefined ) 
 			return;
+		active_chan = id;
 		
 		if ( el.hasChildNodes() )
 			el.removeChild( el.firstChild );
@@ -308,15 +309,15 @@
 		}
 
 		var xhr = new XMLHttpRequest();
-		xhr.open( 'POST', server_host + 'message/?id=' + encodeURIComponent( chatSession.id ), true );
+		xhr.open( 'POST', server_host + 'message/', true ); // ?id=' + encodeURIComponent( chatSession.id ), true );
 		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
 		xhr.onreadystatechange = function () {
 			if ( xhr.readyState === 4 ) {
-				console.info( xhr.responseText );
+				console.info( xhr.statusText + ' ' + xhr.responseText );
 			}
 		};
 		// Message text is sent in POST body
-		xhr.send( encodeObject( { message: message } ) );
+		xhr.send( encodeObject( { id: chatSession.id, chan: channels[active_chan].id, msg: message } ) );
 
 		document.getElementById( 'message' ).value = '';
 		return false;

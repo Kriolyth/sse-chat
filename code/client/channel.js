@@ -16,6 +16,8 @@ Channel.prototype.addMessage = function( msg ) {
 		case 'string': this.history[ msg.ts ] = [ this.history[ msg.ts ], msg ]; break;
 		case 'array': this.history.push( msg ); break;
 	}
+	console.log( 'Message added' );
+	console.log( msg );
 	
 	this.addNodeMessage( msg );
 }
