@@ -3,7 +3,7 @@ var Settings = new function(){
 	this.name = '';
 	this.prefix = 'ambichat_';
 
-	function load() {
+	this.load = function() {
 		var user = localStorage.getItem( this.prefix + 'id' );
 		var name = localStorage.getItem( this.prefix + 'name' );
 		if ( name && name != '' && user && user != '' ) {
@@ -12,14 +12,14 @@ var Settings = new function(){
 		}
 	}
 
-	function save() {
+	this.save = function() {
 		if ( this.name != '' && this.user != 0 ) {
 			localStorage.setItem( this.prefix + 'id',   this.user );
 			localStorage.setItem( this.prefix + 'name', this.name );
 		}
 	}
 
-	function reset() {
+	this.reset = function() {
 		localStorage.clear();
 	}
 	

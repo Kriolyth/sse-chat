@@ -5,11 +5,16 @@
   <title>Help on help</title>
   <script type="text/javascript" src="date.format.js"></script>
   <script type="text/javascript" src="client/settings.js"></script>
+  <script type="text/javascript" src="client/auth.js"></script>
   <script type="text/javascript" src="client/channel.js"></script>
+  <script type="text/javascript" src="client/listener.js"></script>
+  <script type="text/javascript" src="client/processor.js"></script>
+  <script type="text/javascript" src="client/textproc.js"></script>
   <script type="text/javascript">
 	var chatSession = { id: 0, user: 0, name: '' };
 	var channels = {};
-	var server_host = '';
+	var active_chan = null;
+	var server_host = '/sse-chat/server/';
 	var msgHandlers = [];
 	var default_title;
 	var msg_counter = 0;
@@ -17,38 +22,10 @@
 	
 	function presentLoginForm() {
 		var form = document.getElementById('loginForm');
-		form.elements['id'].value = id;
-		form.elements['name'].value = name;		
+		form.elements['id'].value = Settings.user;
+		form.elements['name'].value = Settings.name;
 	}
 	
-	function auth( authData ) {
-		var xhr = new XMLHttpRequest();		
-		xhr.open( 'POST', server_host + 'server/auth', true );
-		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
-		xhr.onreadystatechange = (function _wrapXhr(x){ return function(){authProc(x);} })(xhr);
-		
-		var dataObj = encodeObject( authData );
-		console.log( 'auth string: ' + dataObj );
-		console.log( 'auth object:: ' + JSON.stringify( dataObj ) );
-		xhr.send( dataObj );
-		
-		return false;
-	}
-	
-	function authProc( xhr ) {
-		if ( xhr.readyState === 4 && xhr.status == 200 ) {
-			var response = JSON.parse( xhr.responseText );
-			
-			if ( response.ok ) authOk( response );
-			else authErr( response );
-		} else if ( xhr.readyState === 4 ) {
-			var response = JSON.parse( xhr.responseText );
-			if ( response != '' )
-				showLoginError( 'Server says "' + response + '", but we have no idea what that means' );
-			else
-				showLoginError( 'Sorry, we have no idea what just happened' );
-		}
-	};
 	
 	function authOk( response ) {
 		if ( !response['session'] ) return;
@@ -63,7 +40,7 @@
 		if ( response['pin'] )
 			showPin( response.pin );
 		
-		Setttings.save();
+		Settings.save();
 		startListener();
 	}
 	function authErr( response ) {
@@ -112,6 +89,20 @@
 				// TODO: tab processing
 		}
 	}
+	
+	function submitLogin( form ) {
+		// test if name was changed, so that id will have to be reset		
+		if ( form.id != 0 && form.name != Settings.name )
+			form.id = 0;
+		
+		var auth = new Auth( form.id, form.name );
+		auth.ok = authOk;
+		auth.err = authErr;
+		auth.auth( server_host + 'auth', form.pin );
+		
+		return false;
+	}
+	
 	function showLoginError( message ) {
 		var msgNode = document.createTextNode( message );
 		var errorNode = document.getElementById( 'loginError' );
@@ -135,7 +126,7 @@
       }
     }
 	
-	function makeChannelEntry( msg ) {
+	/*function makeChannelEntry( msg ) {
 		var div = document.createElement('div'),
 			timestamp = document.createElement( 'div' ),
 			author = document.createElement( 'div' ),
@@ -161,10 +152,44 @@
 		div.appendChild( text );
 		
 		div.className = msg.owner;
-		/*msgs.appendChild( div );
-		div.scrollIntoView(); */
 		
 		return div;
+	} */
+	
+	function onSrvMessage( msg ) {
+		switch( msg.event ) {
+			case 'join':
+				var ch = channels[ msg.channel ];
+				if ( ch === undefined ) {
+					ch = new Channel( msg.data );
+					channels[ ch.id ] = ch;
+				}
+				ch.join();
+				updateChannelTabs();
+				break;
+			case 'leave':
+				var ch = channels[ msg.channel ];
+				if ( ch !== undefined )
+					ch.leave();
+				break;
+			default:
+				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
+		}
+	}
+	
+	function onSysMessage( msg ) {
+		var ch = channels[ msg.channel ];
+		if ( ch === undefined ) return;
+		
+		switch( msg.command ) {
+			case 'enter':
+			case 'exit':
+				ch[ msg.command ]( msg );
+				onNewMessage( ch );
+				break;
+			default:
+				console.log( 'Unknown channel message: ' + JSON.stringify( msg ) );
+		}
 	}
 	
 	function onUserMessage( msg ) {
@@ -172,11 +197,37 @@
 		if ( ch === undefined ) return;
 		
 		ch.addMessage( msg );
-		if ( activeChan == ch.id )		
-			addToView( makeChannelEntry( msg ) );
-		
+		onNewMessage( ch );
+		//if ( activeChan == ch.id )		
+		//	addToView( makeChannelEntry( msg ) );
 	}
 	
+	function onNewMessage( channel ) {
+		if ( active_chan == channel.id )
+			setTimeout( 0, function() { scrollToLastMessage(); } );
+	}
+	
+	function scrollToLastMessage() {
+		if ( channels[ active_chan ] !== undefined )
+			channels[ active_chan ].containerNode.lastChild.scrollIntoView();
+			
+		offscreenMsgHandler();
+	}
+	
+	function updateChannelTabs() {
+		var el = document.getElementById( 'tabs' );
+		while ( el.hasChildNodes() )
+			el.removeChild( el.lastChild );
+		
+		for ( var i in channels ) {
+			var ch = channels[ i ];
+			var node = document.createElement( 'li' );
+			node.appendChild( document.createTextNode( ch.name ) );
+			node.onclick = ( function _TabClickClosure(id){ return function(){ switchChannel(id); } } )( ch.id );
+			
+			el.appendChild( node );
+		}
+	}
 	
 	function visibilityChange() {
 		if ( !( document.hidden || !is_active ) ) {
@@ -194,7 +245,7 @@
 		is_active = true;
 		visibilityChange();
 	};
-	function offscreenMsgHandler( msg ) {
+	function offscreenMsgHandler() {
 		if ( document.hidden || !is_active ) {
 			++msg_counter;
 			document.title = '(' + msg_counter + ')' + ' | ' + default_title;
@@ -204,39 +255,39 @@
 	function startListener() {
 		if ( 0 == chatSession.id ) return false;
 		
-		msgHandlers[ 'msgAdd' ] = addMsgHandler;
-		msgHandlers[ 'visChange' ] = offscreenMsgHandler;
+		//msgHandlers[ 'msgAdd' ] = addMsgHandler;
+		//msgHandlers[ 'visChange' ] = offscreenMsgHandler;
 		
 		window.onfocus = onFocus;
 		window.onblur = onBlur;
 		document.addEventListener( 'visibilitychange', visibilityChange );
 		
-		// Only start listener after we authorized
-		var msgs = document.getElementById('msgs'),
-			es = new EventSource( server_host + 'server/?id=' + chatSession.id );
-			
-		// Chat message listener
-		es.addEventListener('message', function (event) {
-				lastEventId = +event.lastEventId;
-				var msg = JSON.parse(event.data);
-
-				// call handlers
-				for ( var i in msgHandlers )
-					msgHandlers[i]( msg );
-				
-				checkId();
-			}
-		);
+		var proc = new Processor();
+		proc.userMsg = onUserMessage;
+		proc.sysMsg = onSysMessage;
+		proc.serviceMsg = onSrvMessage;
 		
-		// TODO: add event listeners (such as contact list update)
+		// Only start listener after we authorized
+		var listener = new Listener( proc );
+		listener.listen( server_host + 'session?id=' + chatSession.id );
+	}
+	
+	function switchChannel( id ) {
+		var el = document.getElementById( 'msgs' );
+		var ch = channels[ id ];
+		if ( ch === undefined ) 
+			return;
+		
+		if ( el.hasChildNodes() )
+			el.removeChild( el.firstChild );
+		el.appendChild( ch.containerNode );
 	}
 
     function onDomReady() {
 		default_title = document.title;
-		if ( loadSession() ) {
+		Settings.load();
 			//auth();
-			presentLoginForm();
-		}
+		presentLoginForm();
 		
 		setTimeout( function() {
 			document.getElementById('message').onkeypress = function() {
@@ -248,7 +299,7 @@
 			}, 10);
     }
 
-    window.onload = onDomReady; // DOMContentLoaded can't prevent NSL under Firefox 10, 11
+    window.onload = onDomReady;
 
     function post() {
 		var message = document.getElementById('message').value;
@@ -256,32 +307,29 @@
 			return false;
 		}
 
-		lastSentMessageId = Infinity;
-
 		var xhr = new XMLHttpRequest();
-		xhr.open('POST', server_host + 'server/?id=' + encodeURIComponent( chatSession.id ), true);
-		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+		xhr.open( 'POST', server_host + 'message/?id=' + encodeURIComponent( chatSession.id ), true );
+		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
 		xhr.onreadystatechange = function () {
-			if (xhr.readyState === 4) {
-				lastSentMessageId = +xhr.responseText || Infinity;
-				checkId();
+			if ( xhr.readyState === 4 ) {
+				console.info( xhr.responseText );
 			}
 		};
 		// Message text is sent in POST body
 		xhr.send( encodeObject( { message: message } ) );
 
-		document.getElementById('message').value = '';
+		document.getElementById( 'message' ).value = '';
 		return false;
     }
 	
 	// convert links to clickable links
-	function linkify(text) {  
+	/*function linkify(text) {  
 		var urlRegex =/(\b(https?|ftp|file):\/\/[-A-Z0-9А-Я+&@#\/%?=~_|!:,.;\(\)]*[-A-ZА-Я0-9+&@#\/%=~_|\(\)])/ig;  
 		return text.replace(urlRegex, function(url) {  
 				return '<a href="' + url + '" target="_blank">' + url + '</a>';  
 			}
 		);
-	}	
+	}*/
 
   </script>
   <style type="text/css">
@@ -308,6 +356,7 @@
 	#chat form { height: 4em; position: absolute; padding-left: 9em; padding-right: 7em; bottom: 1em; left: 1em; right: 1em }
 	#login { position: absolute; display: table; left: 1em; top: 1em }
 	#login form { display: table-row }
+	#loginError:empty { display: none }
 		
 	#message { width: 100%; height: 4em; padding: 0px; margin: 0px }
 	#message + input { height: 4em; width: 6em; position: absolute; right: 0px; top: 0px; padding: 0em; }
@@ -325,8 +374,8 @@
   </style>
 </head>
 <body>
-	<div id="tabs">
-	</div>
+	<ul id="tabs">
+	</ul>
 	<div id="chat">
 		<div id="msgs"></div>
 		<form action="?" onsubmit="return post();"><fieldset>
@@ -335,7 +384,7 @@
 		</fieldset></form>
 	</div>
 	<div id="login">
-		<form action="?" onsubmit="return auth(convertFormToObject(this.form));" id="loginForm"><fieldset>
+		<form action="?" onsubmit="return submitLogin(convertFormToObject(this));" id="loginForm"><fieldset>
 			<label>Войти как: <input type="text" name="name" id="name" required /></label>
 			<label>Пин: <input type="text" name="pin" id="pin" size="5" maxlength="4" value=""/></label>
 			<input type="hidden" name="id" value="0" /></label>

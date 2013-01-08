@@ -3,16 +3,16 @@ function Auth( id, name ) {
 	this.ok = this.err = this.fatal = this.defaultHandler;
 }
 
-Auth.prototype.auth = function( pin ) {
+Auth.prototype.auth = function( uri, pin ) {
 	var xhr = new XMLHttpRequest();
-	xhr.open( 'POST', server_host + 'server/auth', true );
+	xhr.open( 'POST', uri, true );
 	xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
 	xhr.onreadystatechange = (function _wrapXhr(t,x){ return function(){t.handleXhr(x);} })(this,xhr);
 	
 	var authData = { id: this.creds.id, name: this.creds.name };
 	var dataObj = encodeObject( authData );
 	console.log( 'auth string: ' + dataObj );
-	if ( pin !== unassigned )
+	if ( pin !== undefined )
 		authData.pin = pin;
 		
 	dataObj = encodeObject( authData );
