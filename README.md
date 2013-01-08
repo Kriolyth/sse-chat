@@ -3,8 +3,10 @@ sse-chat
 
 Chat server based on Server-Sent Events protocol.
 
-This code is based (but not forked) on another repository.
-(---insert url here---)
+Featured:
+- multiple channels, multiple sessions
+- PIN protection (complementary to password or SMS-reset)
+
 
 Apache configuration: 
 - enable LoadModule 'mod_proxy.so' and 'mod_proxy_http.so'

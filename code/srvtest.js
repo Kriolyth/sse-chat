@@ -89,15 +89,18 @@ router.addHandler( { method: 'POST', url: { match: '/post' } }, onPost );
 var defaultChan = channels.add();
 
 function welcomeProc( session ) {
+	util.puts( 'Welcome to session ' + session.id );
 	var user = users.get( session.user );
 	var userchans = channels.findUserChannels( user );
 	if ( userchans.length > 0 ) {
+		util.puts( 'Loading channels for user ' + user.name );
 		userchans.forEach( function _UserChansEnter(chan){
 				actions.enterChannel( user, chan );
 				// TODO: loadHistory
 		} );
 	} else {
 		// no channels for user 
+		util.puts( 'Joining default channel for user ' + user.name );
 		actions.joinChannel( user, defaultChan );
 	}
 }
