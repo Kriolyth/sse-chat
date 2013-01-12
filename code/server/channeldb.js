@@ -25,14 +25,14 @@ function createChannelsDB() {
 		function addChan( host_user ) {
 			var id;
 			while ( !id || channels[id] )
-				id = ID.id2s( ID.newid() );
+				id = ID.newid();
 
-			var new_chan = new Channel( id );
+			var new_chan = new Channel( ID.id2s( id ) );
 			if ( host_user ) {
 				new_chan.addUser( host_user, 'host' );
 			}
 			
-			channels[ new_chan.id ] = new_chan;
+			channels[ ID.s2id( new_chan.id ) ] = new_chan;
 			return new_chan;
 		}
 		
@@ -42,7 +42,7 @@ function createChannelsDB() {
 			},
 			
 			get: function( id ) {
-				return channels[ id ];
+				return channels[ ID.s2id( id ) ];
 			},
 			
 			add: function( host_user ) {
@@ -56,13 +56,14 @@ function createChannelsDB() {
 					return false;  // user not found
 				else {
 					// TODO: insert DB management code here
-					channels[ chan.id ] = chan;
+					channels[ ID.id2s( chan.id ) ] = chan;
 					return true;
 				}
 			},
 			
 			findUserChannels: function( user ) {
-				return findChannelsForUser( user );
+				var list = findChannelsForUser( user );
+				return list;
 			}
 		}
 		

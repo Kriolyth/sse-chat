@@ -94,6 +94,7 @@ function welcomeProc( session ) {
 	var userchans = channels.findUserChannels( user );
 	if ( userchans.length > 0 ) {
 		util.puts( 'Loading channels for user ' + user.name );
+		actions.listChannels( session );
 		userchans.forEach( function _UserChansEnter(chan){
 				actions.enterChannel( user, chan );
 				// TODO: loadHistory

@@ -1,4 +1,4 @@
-function Channel( description ) { 
+﻿function Channel( description ) { 
 	this.id = description.id;
 	this.name = description.name;
 	this.title = description.title;
@@ -6,7 +6,7 @@ function Channel( description ) {
 	this.active = false;
 	this.history = [];
 	
-	this.containerNode = document.createElement( 'div' );
+	this.containerNode = document.createElement( 'section' );
 }
 
 Channel.prototype.addMessage = function( msg ) {
@@ -54,15 +54,42 @@ Channel.prototype.findNodeAt = function( ts ) {
 }
 
 Channel.prototype.createMessageNode = function( msg ) {
+	function fillNode( node, who, ts, text ) {
+		var whoNode = document.createElement( 'span' ),
+		    tsNode = document.createElement( 'span' ),
+		    msgNode = document.createElement( 'span' );
+		// and "from" part
+		if ( who.trim() != '' ) {
+			whoNode.appendChild( document.createTextNode( who.trim() ) );
+			node.appendChild( whoNode );
+		}
+		// add timestamp part 
+		tsNode.appendChild( document.createTextNode( ts ) );
+		
+		// add an empty text before message, so that message would be copied with the timestamp
+		node.appendChild( document.createTextNode( '' ) );
+		node.appendChild( tsNode );
+		
+		// process the message through textProcessor and add to the parent node
+		msgNode.appendChild( document.createTextNode( text ) );
+		node.appendChild( textProcessor.process( msgNode ) );
+	}
+
 	var node;
 	if ( msg[ 'cmd' ] !== undefined ) {
 		node = document.createElement( 'aside' );
-		node.appendChild( document.createTextNode( JSON.stringify( msg ) ) );
+		//node.appendChild( document.createTextNode( JSON.stringify( msg ) ) );
+		switch ( msg.cmd ) {
+			case 'enter': fillNode( node, '', msg.ts, 'Это же ' + msg.detail.data.user + '!' ); break;
+			case 'exit': fillNode( node, '', msg.ts, 'Пока, ' + msg.detail.data.user + '!' ); break;
+			case 'join': fillNode( node, '', msg.ts, 'Слава роботам!' ); break;
+			default: fillNode( node, '', msg.ts, 'Роботам слава!' );
+		}
 	} else {
 		node = document.createElement( 'article' );
-		node.appendChild( document.createTextNode( JSON.stringify( msg ) ) );
+		//node.appendChild( document.createTextNode( JSON.stringify( msg ) ) );
+		fillNode( node, msg.user, msg.ts, msg.msg );
 	}
-	
 	node.dataset.ts = msg.ts;
 	return node;
 }

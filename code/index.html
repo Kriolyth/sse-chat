@@ -165,7 +165,7 @@
 					ch = new Channel( msg.data );
 					channels[ ch.id ] = ch;
 				}
-				ch.join();
+				ch.join( msg );
 				if ( active_chan == null )
 					switchChannel( ch.id );
 				updateChannelTabs();
@@ -174,6 +174,16 @@
 				var ch = channels[ msg.channel ];
 				if ( ch !== undefined )
 					ch.leave();
+				break;
+			case 'mychan':
+				var ch = channels[ msg.data.channel.id ];
+				if ( ch === undefined ) {
+					ch = new Channel( msg.data.channel );
+					channels[ ch.id ] = ch;
+				}
+				if ( active_chan == null )
+					switchChannel( ch.id );				
+				updateChannelTabs();
 				break;
 			default:
 				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
@@ -211,7 +221,7 @@
 	}
 	
 	function scrollToLastMessage() {
-		if ( channels[ active_chan ] !== undefined )
+		if ( active_chan !== undefined && channels[ active_chan ] !== undefined )
 			channels[ active_chan ].containerNode.lastChild.scrollIntoView();
 			
 		offscreenMsgHandler();
@@ -225,8 +235,10 @@
 		for ( var i in channels ) {
 			var ch = channels[ i ];
 			var node = document.createElement( 'li' );
-			node.appendChild( document.createTextNode( ch.name ) );
-			node.onclick = ( function _TabClickClosure(id){ return function(){ switchChannel(id); } } )( ch.id );
+			var clickNode = document.createElement( 'a' );
+			clickNode.appendChild( document.createTextNode( ch.name ) );
+			clickNode.onclick = ( function _TabClickClosure(id){ return function(){ switchChannel(id); } } )( ch.id );
+			node.appendChild( clickNode );
 			
 			el.appendChild( node );
 		}
@@ -303,10 +315,9 @@
     window.onload = onDomReady;
 
     function post() {
-		var message = document.getElementById('message').value;
-		if (!message) {
-			return false;
-		}
+		if ( !active_chan ) return false;
+		var message = document.getElementById( 'message' ).value;
+		if ( !message ) return false;
 
 		var xhr = new XMLHttpRequest();
 		xhr.open( 'POST', server_host + 'message/', true ); // ?id=' + encodeURIComponent( chatSession.id ), true );
@@ -337,30 +348,23 @@
 	html * { font-family: Trebuchet MS; font-size: 12pt }
 	fieldset { border: none; padding: 0em; margin: 0em }
 	#msgs {
-		position: absolute;
-		overflow-y: scroll;
-		bottom: 6em;
-		right: 1em;
-		left: 1em;
-		top: 1em;
+		margin: 4em 0em 8em;
 	}
-    #msgs > div {
+    #msgs > section {
 		display: block;
-		margin-top: 0.3em;
-		overflow: hidden;
 		position: relative;
     }
-	#msgs > div .timestamp { float: right; width: 6em }
-	#msgs > div .author { width: 8em; text-align: right; float: left }
-	#msgs > div .text { margin: 0em 9em }
-	#chat { visibility: hidden; position: absolute; top: 0px; bottom: 0px; left: 0px; right: 0px; }
-	#chat form { height: 4em; position: absolute; padding-left: 9em; padding-right: 7em; bottom: 1em; left: 1em; right: 1em }
+	#msgs > span .timestamp { float: right; width: 6em }
+	#msgs > span .author { width: 8em; text-align: right; float: left }
+	#msgs > span .text { margin: 0em 9em }
+	#chat { visibility: hidden; }
+	#chat form { height: 4em; margin-left: 9em; margin-right: 7em;  }
 	#login { position: absolute; display: table; left: 1em; top: 1em }
 	#login form { display: table-row }
 	#loginError:empty { display: none }
 		
-	#message { width: 100%; height: 4em; padding: 0px; margin: 0px }
-	#message + input { height: 4em; width: 6em; position: absolute; right: 0px; top: 0px; padding: 0em; }
+	#message { width: 100%; height: 4em; padding: 0px; margin: 0em 0em 0em -6em }
+	#message + input { height: 4em; width: 6em; position: relative; top: -1em; padding: 0em; }
 	
 	
 	.self { color: gray; }

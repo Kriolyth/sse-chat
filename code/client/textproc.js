@@ -8,7 +8,9 @@ function TextProcessor() {
 }
 	
 TextProcessor.prototype.process = function( node ) {
-	return this.handlers.reduce( function _TextProcIterator( node, proc ){ return proc(node); } );
+	return this.handlers.reduce( function _TextProcIterator( n, p ){ 
+			return p(n); 
+	}, node );
 };
 		
 TextProcessor.prototype.add = function( handler, index ) {

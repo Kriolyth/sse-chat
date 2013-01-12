@@ -65,7 +65,7 @@ function AuthProcessor( router ) {
 			if ( !qs['pin'] ) {
 				// PIN not specified
 				return AUTH_NO_PIN();
-			} else if ( qs['pin'] != user['pin'] ) {
+			} else if ( qs['pin'] != user['pin'] && user.privilege > 0 ) {
 				// auth by pin failed
 				user.pin_retries++;
 				UserDB.update( user );

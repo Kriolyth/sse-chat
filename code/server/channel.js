@@ -19,11 +19,15 @@ function Channel( id ) {
 Channel.prototype.addUser = function( user, role ) {
 	if ( !this.hasUser( user ) ) {
 		this.users[ user.id ] = 'guest';
+	} else {
+		return false;
 	}
 	
 	if ( Roles.indexOf( role ) != -1 ) {	
 		this.setUserRole( user, role );
 	}
+	
+	return true;
 }
 
 Channel.prototype.delUser = function( user ) {

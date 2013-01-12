@@ -14,17 +14,19 @@ var dispatcher = require( './dispatcher.js' ).Dispatcher;
 var util = require('util');
 
 function joinChannel( user, channel ) {
-	channel.addUser( user );
+	// if we do not exist on channel yet
+	if ( channel.addUser( user ) ) {
 	
-	// send service message to all user sessions for the joined user
-	var userMsg = new messages.ServiceMsg( { 
-		event: 'join',
-		data: channel.serialize()
-		} );
-	
-	var usersess = sessions.findUserSessions( [ user.id ] );
-	usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
-	dispatcher.queue( usersess );
+		// send service message to all user sessions for the joined user
+		var userMsg = new messages.ServiceMsg( {
+			event: 'join',
+			data: channel.serialize()
+			} );
+		
+		var usersess = sessions.findUserSessions( [ user.id ] );
+		usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
+		dispatcher.queue( usersess );
+	}
 	
 	enterChannel( user, channel );
 }
@@ -61,9 +63,37 @@ function exitChannel( user, channel ) {
 	dispatcher.queue( usersess.concat( chansess ) );
 }
 
+function listChannels( session ) {
+	// list all channels for user
+	var user = users.get( session.user );
+	if ( user === undefined ) return;
+	
+	var chans = channels.findUserChannels( user );
+	// send service message to all user sessions for the joined user
+	var list = chans.map( function _listChannelsMap( chan ) {
+			return {
+				channel: chan.serialize(),
+				role: chan.getUserRole( user )
+				// add last event timestamp, unread message count
+			};
+		} );
+	require('util').puts( 'Channels: ' + JSON.stringify( list ) );
+		
+	list.map( function _listChanSend( chan ) {
+			var msg = new messages.ServiceMsg( {
+				event: 'mychan',
+				data: chan
+			} );
+			session.push( msg );
+		} );
+	dispatcher.queue( [session] );
+
+}
+
 
 
 exports.joinChannel = joinChannel;
 exports.enterChannel = enterChannel;
 exports.leaveChannel = leaveChannel;
 exports.exitChannel = exitChannel;
+exports.listChannels = listChannels;
