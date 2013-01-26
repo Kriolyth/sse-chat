@@ -55,23 +55,25 @@ Channel.prototype.findNodeAt = function( ts ) {
 
 Channel.prototype.createMessageNode = function( msg ) {
 	function fillNode( node, who, ts, text ) {
-		var whoNode = document.createElement( 'span' ),
-		    tsNode = document.createElement( 'span' ),
-		    msgNode = document.createElement( 'span' );
+		var whoNode = document.createElement( 'div' ),
+		    tsNode = document.createElement( 'div' ),
+		    msgNode = document.createElement( 'div' );
 		// and "from" part
 		if ( who.trim() != '' ) {
 			whoNode.appendChild( document.createTextNode( who.trim() ) );
+			whoNode.setAttribute( 'class', 'author' );
 			node.appendChild( whoNode );
 		}
 		// add timestamp part 
-		tsNode.appendChild( document.createTextNode( ts ) );
+		var tsText = ( new Date(ts) ).format( 'HH:MM' );
+		tsNode.appendChild( document.createTextNode( tsText ) );
+		tsNode.setAttribute( 'class', 'timestamp' );
 		
-		// add an empty text before message, so that message would be copied with the timestamp
-		node.appendChild( document.createTextNode( '' ) );
 		node.appendChild( tsNode );
 		
-		// process the message through textProcessor and add to the parent node
+		// process the message through textProcessor and add to the parent node		
 		msgNode.appendChild( document.createTextNode( text ) );
+		msgNode.setAttribute( 'class', 'text' );
 		node.appendChild( textProcessor.process( msgNode ) );
 	}
 

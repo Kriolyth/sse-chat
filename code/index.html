@@ -35,7 +35,7 @@
 		Settings.user = chatSession.user;
 		Settings.name = chatSession.name;
 		
-		alert( chatSession.id );
+		//alert( chatSession.id );
 		switchPanel( 'chat' );
 		
 		if ( response['pin'] )
@@ -228,19 +228,22 @@
 	}
 	
 	function updateChannelTabs() {
-		var el = document.getElementById( 'tabs' );
-		while ( el.hasChildNodes() )
-			el.removeChild( el.lastChild );
+		var tabsNode = document.getElementById( 'tabs' );
+		while ( tabsNode.hasChildNodes() )
+			tabsNode.removeChild( tabsNode.lastChild );
 		
 		for ( var i in channels ) {
 			var ch = channels[ i ];
-			var node = document.createElement( 'li' );
-			var clickNode = document.createElement( 'a' );
-			clickNode.appendChild( document.createTextNode( ch.name ) );
-			clickNode.onclick = ( function _TabClickClosure(id){ return function(){ switchChannel(id); } } )( ch.id );
-			node.appendChild( clickNode );
+			var newTab = document.createElement( 'li' );
+			newTab.appendChild( document.createTextNode( ch.name ) );
+			newTab.addEventListener( 'click', ( function _TabClickClosure(id){ 
+				return function _TabClick(){ 
+					switchChannel(id); 
+					return false; 
+				} }
+			)( ch.id ) );
 			
-			el.appendChild( node );
+			tabsNode.appendChild( newTab );
 		}
 	}
 	
@@ -354,9 +357,11 @@
 		display: block;
 		position: relative;
     }
-	#msgs > span .timestamp { float: right; width: 6em }
-	#msgs > span .author { width: 8em; text-align: right; float: left }
-	#msgs > span .text { margin: 0em 9em }
+	#msgs section {}
+	#msgs aside { font-style: italic }
+	#msgs .timestamp { float: right; width: 6em }
+	#msgs .author { width: 8em; text-align: right; float: left; margin-right: -8em }
+	#msgs .text { margin: 0em 9em }
 	#chat { visibility: hidden; }
 	#chat form { height: 4em; margin-left: 9em; margin-right: 7em;  }
 	#login { position: absolute; display: table; left: 1em; top: 1em }
