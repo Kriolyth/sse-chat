@@ -44,7 +44,11 @@ function AuthProcessor( router ) {
 				// existing user
 				user = UserDB.find( { id: qs['id'] } );
 				if ( !user ) {
-					// no such id -- add one
+					// no such id -- this might be a returning user
+					user = UserDB.find( { name: qs['name'] } );				
+				}
+				if ( !user ) {
+					// no such id and name -- create a new user
 					return newUser( response, qs );
 				}
 				// if name in DB does not match the given one, discard the given
