@@ -136,9 +136,13 @@
 					channels[ ch.id ] = ch;
 				}
 				ch.join( msg );
-				if ( active_chan == null )
+				if ( active_chan == null ) {
 					switchChannel( ch.id );
+				}
 				updateChannelTabs();
+				var el = document.getElementById( 'tab-group' );
+				if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] )
+					el.elements.tabs.elements.channel.click();
 				break;
 			case 'leave':
 				var ch = channels[ msg.channel ];
@@ -151,9 +155,13 @@
 					ch = new Channel( msg.data.channel );
 					channels[ ch.id ] = ch;
 				}
-				if ( active_chan == null )
-					switchChannel( ch.id );				
+				if ( active_chan == null ) {
+					switchChannel( ch.id );	
+				}
 				updateChannelTabs();
+				var el = document.getElementById( 'tab-group' );
+				if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] )
+					el.elements.tabs.elements.channel.click();
 				break;
 			default:
 				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
@@ -181,13 +189,11 @@
 		
 		ch.addMessage( msg );
 		onNewMessage( ch );
-		//if ( activeChan == ch.id )		
-		//	addToView( makeChannelEntry( msg ) );
 	}
 	
 	function onNewMessage( channel ) {
 		if ( active_chan == channel.id )
-			setTimeout( 0, function() { scrollToLastMessage(); } );
+			setTimeout( function() { scrollToLastMessage(); }, 0 );
 	}
 	
 	function scrollToLastMessage() {
@@ -204,9 +210,18 @@
 		
 		for ( var i in channels ) {
 			var ch = channels[ i ];
-			var newTab = document.createElement( 'li' );
-			newTab.appendChild( document.createTextNode( ch.name ) );
-			newTab.addEventListener( 'click', ( function _TabClickClosure(id){ 
+			var newTab = document.createElement( 'label' );
+			// <input type="radio" name="channel">
+			var opt = document.createElement( 'input' );
+			opt.setAttribute( 'name', 'channel' );
+			opt.setAttribute( 'type', 'radio' );
+			opt.setAttribute( 'value', ch.id );
+			newTab.appendChild( opt );
+			var spanNode = document.createElement( 'span' );
+			spanNode.appendChild( document.createTextNode( ch.name ) );
+			newTab.appendChild( spanNode );
+			
+			opt.addEventListener( 'change', ( function _TabClickClosure(id){ 
 				return function _TabClick(){ 
 					switchChannel(id); 
 					return false; 
@@ -324,14 +339,18 @@
 	html * { font-family: Trebuchet MS; font-size: 12pt }
 	fieldset { border: none; padding: 0em; margin: 0em }
 	
-	#tabs { height: 4em; list-style-type: none; position: fixed; top: 0em; left: 0em; width: 100% }
+	#tabs { list-style-type: none; position: relative; top: 0em; left: 0em; width: 100% }
 	#tabs > li { display: inline; border: 1px solid silver; padding: 0em 1em }
+	#tabs input[type="radio"] { display: none }
+	#tabs input[type="radio"]:checked + * { font-weight: bold }	
+	#tabs label { display: inline; border: 1px solid silver; padding: 0em 1em }
 	#msgs {
-		padding: 4em 0em 8em;
+		padding: 0em 0em 8em;
+		position: relative;
 	}
     #msgs > section {
 		display: block;
-		position: relative;
+		/* position: relative; */
     }
 	#msgs section {}
 	#msgs aside { font-style: italic }
@@ -361,8 +380,9 @@
   </style>
 </head>
 <body>
-	<ul id="tabs">
-	</ul>
+	<form id="tab-group"><fieldset id="tabs">
+	
+	</fieldset></form>
 	<div id="chat">
 		<div id="msgs"></div>
 		<table id="input-table"><tr>
