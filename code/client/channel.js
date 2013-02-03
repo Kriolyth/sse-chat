@@ -11,11 +11,11 @@
 
 Channel.prototype.addMessage = function( msg ) {
 	// Add message to channel history
-	switch ( typeof( this.history[ msg.ts ] ) ) {
-		case 'undefined': this.history[ msg.ts ] = msg; break;
-		case 'string': this.history[ msg.ts ] = [ this.history[ msg.ts ], msg ]; break;
-		case 'array': this.history.push( msg ); break;
-	}
+	var ts = msg.ts;
+	while ( typeof( this.history[ts] ) != 'undefined' )
+		++ts;
+	this.history[ ts ] = msg;
+
 	console.log( 'Message added' );
 	console.log( msg );
 	

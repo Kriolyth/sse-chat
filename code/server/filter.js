@@ -38,6 +38,9 @@ Comparator.prototype._regex = function( x ) {
 Comparator.prototype._false = function( x ) {
 	return false;
 }
+Comparator.prototype._fcn = function( x ) {
+	return this.reference( x );
+}
 
 
 function Filter( pattern ) {
@@ -57,6 +60,9 @@ function Filter( pattern ) {
 				else
 					// TODO: convert to deep object comparator
 					this.filter[field] = new Comparator( pattern[field], 'equal' );
+				break;
+			case 'function':
+				this.filter[field] = new Comparator( pattern[field], 'fcn' );
 				break;
 			default:
 				this.filter[field] = new Comparator( pattern[field], 'false' );

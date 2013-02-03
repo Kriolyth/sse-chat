@@ -16,13 +16,13 @@ var util = require('util');
 function joinChannel( user, channel ) {
 	// if we do not exist on channel yet
 	if ( channel.addUser( user ) ) {
-	
 		// send service message to all user sessions for the joined user
 		var userMsg = new messages.ServiceMsg( {
 			event: 'join',
 			data: channel.serialize()
 			} );
 		
+		channel.addMessage( channel.EV_JOIN, { user: user.id, msg: userMsg } );
 		var usersess = sessions.findUserSessions( [ user.id ] );
 		usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
 		dispatcher.queue( usersess );
@@ -38,6 +38,7 @@ function leaveChannel( user, channel ) {
 		event: 'leave',
 		data: channel.serialize()
 		} );
+	channel.addMessage( channel.EV_LEAVE, { user: user.id, msg: userMsg } );
 	var usersess = sessions.findUserSessions( [ user.id ] );
 	usersess.forEach( function _UserPushMsg(s){ s.push( userMsg ); } );
 	dispatcher.queue( usersess );
@@ -90,6 +91,11 @@ function listChannels( session ) {
 
 }
 
+function sendHistory( session, history ) {
+	history.forEach( function(m) { session.push(m); } );
+	
+	dispatcher.queue( [session] );
+}
 
 
 exports.joinChannel = joinChannel;
@@ -97,3 +103,4 @@ exports.enterChannel = enterChannel;
 exports.leaveChannel = leaveChannel;
 exports.exitChannel = exitChannel;
 exports.listChannels = listChannels;
+exports.sendHistory = sendHistory;

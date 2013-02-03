@@ -9,6 +9,7 @@ var url = require( 'url' );
 var Filter = require( './filter.js' ).Filter;
 var Sessions = require( './session.js' ).Sessions;
 var Channels = require( './channeldb.js' ).ChannelsDB;
+var Channel = require( './channel.js' ).Channel;
 var Messages = require( './message.js' );
 var QueryString = require( 'querystring' );
 var Users = require('./userdb.js').UserDB;
@@ -76,6 +77,7 @@ function MessageRouter( router ) {
 		var chanUsers = chan.userList();
 		var userSessions = Sessions.findUserSessions( chanUsers );
 		var msg = new Messages.UserMsg( chan, user, query.msg );
+		chan.addMessage( chan.EV_MSG, msg );
 		require('util').puts( 'For ' + userSessions.length + ' sessions send ' + JSON.stringify( msg ) );
 		userSessions.forEach( function _PostToUserSession(userSession) {
 			userSession.push( msg );

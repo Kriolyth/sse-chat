@@ -26,6 +26,7 @@ var helpmsg = require('./server/helpmsg.js').HelpMsg;
 
 var defaultChan = channels.add();
 defaultChan.name = 'Public';
+defaultChan.isPublic = true;
 
 function welcomeProc( session ) {
 	util.puts( 'Welcome to session ' + session.id );
@@ -43,11 +44,16 @@ function welcomeProc( session ) {
 				actions.enterChannel( user, chan );
 			}
 			// TODO: loadHistory
+			var history = chan.getHistory( user, { count: 20 } );
+			actions.sendHistory( session, history );
 		} );
 	} else {
 		// no channels for user 
 		util.puts( 'Joining default channel for user ' + user.name + ', pin ' + user.pin );
 		actions.joinChannel( user, defaultChan );
+
+		var history = defaultChan.getHistory( user, { count: 20 } );
+		actions.sendHistory( session, history );
 	}
 }
 
