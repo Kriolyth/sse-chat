@@ -26,6 +26,7 @@ Session.prototype.reset = function( id, user ) {
 	this.socket = null;
 	this.keepAlive = null;
 	this.queue = [];        // message queue
+	this.closeCallback = null;
 }
 
 // Switch to 'half-open' state for as long as 'timeout'
@@ -57,6 +58,8 @@ Session.prototype.attach = function( socket ) {
 }
 
 Session.prototype.onClose = function() {
+	SessionDB.remove( this );
+	
 	this.socket = null;
 	this.openState = 0;
 	this.queue = [];
@@ -66,22 +69,25 @@ Session.prototype.onClose = function() {
 		this.keepAlive = null;
 	}
 	
+	
 	if ( this.timeoutId ) {
 		require('util').puts( 'Timeout for session ' + this.id );
 		clearTimeout( this.timeoutId );
 		delete this.timeoutId;
 	} else {
 		require('util').puts( 'Socket close for session ' + this.id );
+		if ( this.closeCallback )
+			this.closeCallback( this );
 	}
-	
-	SessionDB.remove( this );
 }
 
-Session.prototype.addNotifyClose = function( func ) {
-	this.socket.once( 'close', function(x){ return function _SessionCloseNotifier(){func(x);} }(this) );
+Session.prototype.setNotifyClose = function( func ) {
+	//this.socket.once( 'close', function(x){ return function _SessionCloseNotifier(){func(x);} }(this) );
+	this.closeCallback = func;
 }
 
 Session.prototype.push = function( msg ) {
+	//require('util').puts( 'Queued msg ' + JSON.stringify( msg ) );					
 	this.queue.push( msg );
 }
 Session.prototype.send = function() {
@@ -90,7 +96,7 @@ Session.prototype.send = function() {
 		this.queue.forEach( function _SocketQueueMsgSerialize(msg) {
 				res += msg.serialize();
 			} );
-		
+			
 		this.queue = [];
 		this.socket.write( res );
 		

@@ -56,11 +56,11 @@ function enterChannel( user, channel ) {
 
 function exitChannel( user, channel ) {
 	// send "left" message to all user sessions
-	var chanMsg = new messages.SysMsg( channel, 'leave', { user: user.name } );
+	var chanMsg = new messages.SysMsg( channel, 'exit', { user: user.name } );
 	var chansess = sessions.findUserSessions( channel.userList() );
 	chansess.forEach( function _ChanPushMsg(s){ s.push( chanMsg ); } );
 	
-	dispatcher.queue( usersess.concat( chansess ) );
+	dispatcher.queue( chansess );
 }
 
 function listChannels( session ) {
