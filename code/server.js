@@ -1,10 +1,8 @@
-var PORT = 8002;
-
 var util = require('util');
-var http = require('http');
-var fs = require('fs');
-var EventEmitter = require('events').EventEmitter;
-var querystring = require('querystring');
+var querystring = require( 'querystring' );
+
+var ADDR = '127.0.0.1';
+var PORT = 8002;
 
 util.puts('Starting server at http://localhost:' + PORT);
 
@@ -14,255 +12,62 @@ process.on('uncaughtException', function (e) {
   } catch (e0) {}
 });
 
-var emitter = new EventEmitter();
-var history = [];
-// var servicemsg = [];
-var heartbeatTimeout = 9000;
-var firstId = Number(new Date());
+var router = require('./server/router.js').Router();
+var listener = require('./server/listener.js').Listener( router );
+var auth = require('./server/auth.js').AuthProcessor( router );
+var initiator = require('./server/initiator.js').Initiator( router );
+var channels = require('./server/channeldb.js').ChannelsDB;
+var msgRouter = require('./server/msgrouter.js').MessageRouter( router );
+var users = require('./server/userdb.js').UserDB;
+var sessions = require('./server/session.js').Sessions;
+var actions = require('./server/action.js');
+var helpmsg = require('./server/helpmsg.js').HelpMsg;
 
-var users = [];
 
-var SYSMSG = { userConnected: -1, userDisconnected: -2 };
+var defaultChan = channels.add();
+defaultChan.name = 'Public';
 
-setInterval(function () {
-  emitter.emit('message');
-}, heartbeatTimeout / 2);
-
-function eventStream(request, response, uid) {
-	var post = '',
-		lastEventId;
-
-	function sendMessages() {
-		lastEventId = Math.max(lastEventId, firstId);
-		while (lastEventId - firstId < history.length) {
-			var msg = history[lastEventId - firstId];
-			if ( users[msg.uid] != undefined ) {
-				var data = { 
-					msgType : msg.msgType,
-					owner   : msg.uid == uid ? 'self' : ( msg.uid == -1 ? 'system' : 'other' ),
-					author  : users[msg.uid].name,
-					ts      : msg.ts,
-					msg     : msg.msg
-					}
-				response.write('id: ' + (lastEventId + 1) + '\n' + 'data: ' + JSON.stringify(data) + '\n\n');
+function welcomeProc( session ) {
+	util.puts( 'Welcome to session ' + session.id );
+	session.setNotifyClose( goodbyeProc );
+	var user = users.get( session.user );
+	var userchans = channels.findUserChannels( user );
+	if ( userchans.length > 0 ) {
+		util.puts( 'Loading channels for user ' + user.name );
+		actions.listChannels( session );
+		var userSessions = sessions.findUserSessions( [ user.id ] );
+		var userSessCount = userSessions.length;
+		userchans.forEach( function _UserChansEnter(chan){
+			if ( userSessCount == 1 ) {
+				// do not notify channel on second session
+				actions.enterChannel( user, chan );
 			}
-			lastEventId += 1;
-		}
-		
-		// Send service messages, if any
-		/* for ( var i in servicemsg ) {
-			var msg = servicemsg[i];
-			response.write('event: ' + msg.event + '\n' );
-			response.write('data: ' + JSON.stringify(msg) + '\n\n');
-		}
-		servicemsg = []; */
-		
-		response.write(':\n');
-	}
-
-  function onRequestEnd() {
-    //post = querystring.parse(post);// failure ???
-	post = request.decodedBody;
-    response.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-       //'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Allow-Origin': 'http://' + request.headers.host
-    });
-    lastEventId = +request.headers['last-event-id'] || +post['Last-Event-ID'] || 0;
-
-    // 2 kb comment message for XDomainRequest (IE8, IE9)
-    //response.write(':' + Array(2049).join(' ') + '\n');
-    response.write('retry: 1000\n');
-    response.write('heartbeatTimeout: ' + heartbeatTimeout + '\n');
-
-    emitter.addListener('message', sendMessages);
-    emitter.setMaxListeners(0);
-
-    sendMessages();
-  }
-
-  response.socket.on('close', function () {
-	//console.log( (new Date()).toISOString() + ': onSocketClose' );
-	
-    emitter.removeListener('message', sendMessages);
-    request.removeListener('end', onRequestEnd);
-    response.end();
-	
-	if ( users[ String(uid) ] != undefined ) {
-		users[ String(uid) ].activeCount--;
-		if ( 0 == users[ String(uid) ].activeCount )
-			postSysMsg( 'userDisconnected', users[ String(uid) ].name );
+			// TODO: loadHistory
+		} );
 	} else {
-		console.log( 'Socket close on undefined user ' + uid );
+		// no channels for user 
+		util.puts( 'Joining default channel for user ' + user.name + ', pin ' + user.pin );
+		actions.joinChannel( user, defaultChan );
 	}
-  });
-
-  request.addListener('data', function (data) {
-    if (post.length < 16384) {
-      post += data;
-    }
-  });
-
-  request.addListener('end', onRequestEnd);
-  onRequestEnd();
-  response.socket.setTimeout(0); // see http://contourline.wordpress.com/2011/03/30/preventing-server-timeout-in-node-js/
 }
 
-function postSysMsg( msgType, text )
-{
-	var data = {
-		msgType : SYSMSG[ msgType ],
-		uid: -1,
-		ts: (new Date()).getTime(),
-		msg: text
-	};
-	
-	history.push( data );
-	emitter.emit( 'message' );
-}
-
-function processGet( request, response ) {
-
-
-
-}
-
-function processPost( request, response ) {
-	var url = request.url,
-		query = require('url').parse(url, true).query,
-		data;
-	// POST request
-	
-	//console.log( 'POST: ' + url );
-    var fullBody = '';
-    
-    function dataCollect(chunk) {
-      // append the current chunk of data to the fullBody variable
-      fullBody += chunk.toString();
-    };
-    function dataReceived() {
-		request.removeListener( 'data', dataCollect );
-		request.removeListener( 'end', dataReceived );
-    
-		// request ended -> do something with the data
-		//res.writeHead(200, "OK", {'Content-Type': 'text/html'});
-
-		// parse the received body data
-		var decodedBody = querystring.parse(fullBody);
-		//console.log(JSON.stringify(decodedBody) + " <-Posted Data Test");
-		request.decodedBody = decodedBody;
-
-		// Auth request		
-		if ( /^\/auth\?/.test(url) && query.name ) {
-			var uid = parseInt( query.id );
-			var success = false;
-			var qname = query.name.trim();
-			console.log( 'Auth request: id=' + uid + ', name=' + qname );
-			if ( 0 >= uid || users[ String(uid) ] == undefined ) {
-				// search for an old user with such name
-				var found;
-				for ( var i in users ) {
-					if ( users[i].name == qname ) {
-						found = i;
-					}
-				}
-				
-				if ( found == undefined ) {			
-					uid = Math.floor( Math.random() * 1677214 ) + 2;
-					users[ String(uid) ] = { name: qname, activeCount: 1 };
-					console.log( 'New UID ' + uid );
-					success = true;
-				} else if ( 0 == users[found].activeCount ) {
-					users[ found ].activeCount++;
-					console.log( 'UID takeover ' + uid );
-					success = true;
-				} else {
-					console.log( 'UID takeover failed, active user ' + found );
-					success = false;
-				}
-			}
-			else if ( qname == users[ String(uid) ].name ) {
-				console.log( 'Existing user with UID ' + uid );
-				users[ String(uid) ].activeCount++;
-				success = true;
-			}
-			else {
-				console.log( 'Failed logon with UID ' + uid );
-				success = false;
-			}
-			
-			if ( success ) {
-				response.writeHead( 200, {
-					'Content-Type': 'text/plain'
-					}
-				);
-				response.end( String(uid) );
-				if ( users[ String(uid) ].activeCount == 1 )
-					postSysMsg( 'userConnected', users[ String(uid) ].name );
-			} else {
-				response.writeHead( 221, {
-					'Content-Type': 'text/plain'
-					}
-				);
-				response.end( 'Auth failed' );
-			}
-			return;
-		} else if ( /^\/\?/.test(url) && decodedBody && decodedBody.message && query.id ) {
-			var time = new Date();
-			var msgType = 1;
-			if ( decodedBody.msgType && decodedBody.msgType > 0 )
-				msgType = decodedBody.msgType;
-			data = {
-				msgType: msgType,
-				uid: query.id,
-				ts: time.getTime(), 
-				msg: decodedBody.message 
-			};
-			response.writeHead( 200, {
-				'Content-Type': 'text/plain'
-				}
-			);
-			response.end(String(history.push(data)));
-			emitter.emit('message');
-			
-			//console.log( 'Message received: ' + decodedBody.message );
-			return;
-		} else if ( /^\/\?id=\d+/.test(url) ) {				
-			var id = parseInt( /\?id=(\d+)/.exec( url )[1] );
-
-			if ( 0 != id && users[String(id)] ) {
-				console.log( 'New stream: ' + id );
-				//emitter.emit('message');
-				eventStream(request, response, id);			
-			}
-		} else {
-			response.writeHead( 220, {
-				'Content-Type': 'text/plain'
-			} );
-			response.end();
-		}
-    };
-
-	request.addListener('data', dataCollect );
-	request.addListener('end', dataReceived );
-
-	
-}
-
-
-users[ '-1' ] = { name: 'System', activeCount: 1 };
-
-http.createServer(function (request, response) {
-
-	if ( request.method == 'POST' ) {
-		processPost( request, response );
-	}	
-	else //if ( request.method == 'GET' )
-	{
-		console.log( 'Request: ' + request.method );
-		processGet( request, response );
+function goodbyeProc( session ) {
+	util.puts( 'Goodbye to session ' + session.id );
+	var user = users.get( session.user );
+	var userSessions = sessions.findUserSessions( [ user.id ] );
+	var userSessCount = userSessions.length;
+	if ( userSessCount == 0 ) {
+		// user left
+		util.puts( 'User ' + user.name + ' has left' );
+		var userchans = channels.findUserChannels( user );
+		userchans.forEach( function _UserChansExit(chan){
+			actions.exitChannel( user, chan );
+		} );
 	}
+}
 
-	
-}).listen(PORT, '127.0.0.1');
+initiator.setWelcomeProc( welcomeProc );
+
+auth.setHalfopenTimeout( 15000 );
+
+listener.listen( PORT, ADDR );
