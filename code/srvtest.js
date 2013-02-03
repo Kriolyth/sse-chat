@@ -1,6 +1,7 @@
 var util = require('util');
 var querystring = require( 'querystring' );
 
+var ADDR = '127.0.0.1';
 var PORT = 8002;
 
 util.puts('Starting server at http://localhost:' + PORT);
@@ -22,73 +23,14 @@ var sessions = require('./server/session.js').Sessions;
 var actions = require('./server/action.js');
 var helpmsg = require('./server/helpmsg.js').HelpMsg;
 
-function onGet( response, request ) {
-	util.puts( 'GET: ' + request.url );
-	
-	response.writeHead( 200, "OK", {
-			'Content-Type': 'text/plain',
-		} );
-	var dump = { status: 200,
-		httpVersion: request.httpVersion,
-		method: request.method,
-		url: request.url,
-		headers: request.headers }
-	response.write( JSON.stringify( dump, undefined, '\t' ) );
-				
-	response.end();
-	return true;
-}
-function onPost( response, request, body ) {
-	util.puts( 'POST: ' + request.url );
-	
-	response.writeHead( 200, "OK", {
-			'Content-Type': 'text/html',
-		} );
-	var dump = { status: 200,
-		httpVersion: request.httpVersion,
-		method: request.method,
-		url: request.url,
-		headers: request.headers,
-		body: body }
-		
-	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
-		'<input name="id" value="1001"/><input name="pin" value="1234"/>' +
-		'<input type="submit" value="Submit"/></fieldset></form>';
-		
-	html += '<pre>' + JSON.stringify( dump, undefined, '\t' ) + '</pre></body></html>';
-	response.write( html );
-	
-	response.end();
-	return true;
-}
-
-function showForm( response, request ) {
-	util.puts( 'GET: ' + request.url );
-	
-	response.writeHead( 200, "OK", {
-			'Content-Type': 'text/html',
-		} );
-	var html = '<!DOCTYPE html><body><form method="post" action="/auth"><fieldset><input name="name" value="User1"/>' +
-		'<input name="id" value="1001"/><input name="pin" value="1234"/>' +
-		'<input type="submit" value="Submit"/></fieldset></form>';
-		
-	html += '<form method="get" action="/session"><fieldset><input name="id" value="1234"/>' +
-		'<input type="submit" value="Submit"/></fieldset></form>';
-		
-	html += '</body>';
-	response.write( html );
-				
-	response.end();
-	return true;
-}
-
-router.addHandler( { method: 'GET', url: '/' }, onGet );
-router.addHandler( { method: 'GET', url: { regex: '^/help' } }, onGet );
-router.addHandler( { method: 'GET', url: { match: '/post' } }, showForm );
-router.addHandler( { method: 'POST', url: { match: '/post' } }, onPost );
 
 var defaultChan = channels.add();
 defaultChan.name = 'Public';
+defaultChan.isPublic = true;
+
+var defaultChan2 = channels.add();
+defaultChan2.name = 'Private';
+defaultChan2.isPublic = false;
 
 function welcomeProc( session ) {
 	util.puts( 'Welcome to session ' + session.id );
@@ -106,11 +48,20 @@ function welcomeProc( session ) {
 				actions.enterChannel( user, chan );
 			}
 			// TODO: loadHistory
+			var history = chan.getHistory( user, { count: 20 } );
+			actions.sendHistory( session, history );
 		} );
 	} else {
 		// no channels for user 
 		util.puts( 'Joining default channel for user ' + user.name + ', pin ' + user.pin );
 		actions.joinChannel( user, defaultChan );
+		actions.joinChannel( user, defaultChan2 );
+
+		var history = defaultChan.getHistory( user, { count: 20 } );
+		actions.sendHistory( session, history );
+		
+		history = defaultChan2.getHistory( user, { count: 20 } );
+		actions.sendHistory( session, history );
 	}
 }
 
@@ -133,4 +84,4 @@ initiator.setWelcomeProc( welcomeProc );
 
 auth.setHalfopenTimeout( 15000 );
 
-listener.listen( PORT, '127.0.0.1' );
+listener.listen( PORT, ADDR );

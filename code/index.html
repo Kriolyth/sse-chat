@@ -136,13 +136,14 @@
 					channels[ ch.id ] = ch;
 				}
 				ch.join( msg );
+				updateChannelTabs();
 				if ( active_chan == null ) {
 					switchChannel( ch.id );
+					var el = document.getElementById( 'tab-group' );
+					if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
+						setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
+					}
 				}
-				updateChannelTabs();
-				var el = document.getElementById( 'tab-group' );
-				if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] )
-					el.elements.tabs.elements.channel.click();
 				break;
 			case 'leave':
 				var ch = channels[ msg.channel ];
@@ -154,14 +155,19 @@
 				if ( ch === undefined ) {
 					ch = new Channel( msg.data.channel );
 					channels[ ch.id ] = ch;
-				}
-				if ( active_chan == null ) {
-					switchChannel( ch.id );	
+				} else {
+					// update channel information
+					ch.name = msg.data.channel.name;
+					ch.title = msg.data.channel.title;
 				}
 				updateChannelTabs();
-				var el = document.getElementById( 'tab-group' );
-				if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] )
-					el.elements.tabs.elements.channel.click();
+				if ( active_chan == null ) {
+					switchChannel( ch.id );	
+					var el = document.getElementById( 'tab-group' );
+					if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
+						setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
+					}
+				}
 				break;
 			default:
 				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
@@ -197,8 +203,11 @@
 	}
 	
 	function scrollToLastMessage() {
-		if ( active_chan !== undefined && channels[ active_chan ] !== undefined )
-			channels[ active_chan ].containerNode.lastChild.scrollIntoView();
+		if ( active_chan !== undefined && channels[ active_chan ] !== undefined ) {
+			//channels[ active_chan ].containerNode.lastChild.scrollIntoView();
+			var objDiv = channels[ active_chan ].containerNode.lastChild;
+			window.scrollTo( window.scrollX, objDiv.offsetTop );
+		}
 			
 		offscreenMsgHandler();
 	}
@@ -230,6 +239,8 @@
 			
 			tabsNode.appendChild( newTab );
 		}
+		
+		document.getElementById( 'msgs' ).style.top = tabsNode.offsetHeight + 'px';
 	}
 	
 	function visibilityChange() {
@@ -283,32 +294,35 @@
 			el.removeChild( el.firstChild );
 		el.appendChild( ch.containerNode );
 	}
-
+	
+	function sendTextMessage() {
+		if ( !active_chan ) return false;
+		var msg_el = document.getElementById( 'message' );
+		if ( !msg_el ) return false;
+		var message = (new String( msg_el.value)).trim();
+		if ( !message ) return false;
+		
+		var msg_object = { id: chatSession.id, chan: channels[active_chan].id, msg: message };
+		post( 'message/', msg_object ); 
+		
+		document.getElementById( 'message' ).value = '';
+		return false;
+	};	
+	
     function onDomReady() {
 		default_title = document.title;
 		Settings.load();
 			//auth();
 		presentLoginForm();
 		
-		setTimeout( function() {
-			document.getElementById('message').onkeypress = function _SendMsg() {
-				if ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey ) { 
-						// send with "Enter", newline with "Shift+Enter"
-						if ( !active_chan ) return false;
-						var msg_el = document.getElementById( 'message' );
-						if ( !msg_el ) return false;
-						var message = (new String( msg_el.value)).trim();
-						if ( !message ) return false;
-						
-						var msg_object = { id: chatSession.id, chan: channels[active_chan].id, msg: message };
-						post( 'message/', msg_object ); 
-						
-						document.getElementById( 'message' ).value = '';
-						return false;
-					}
-				};
-			}, 10);
-    }
+		document.getElementById('message').onkeypress = function _SendMsg(event) {
+				// send with "Enter", newline with "Shift+Enter"
+				if ( event.keyCode == 10 || ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey ) ) { 
+					return sendTextMessage();
+				}
+				return true;
+			};
+	}
 
     window.onload = onDomReady;
 
@@ -339,8 +353,7 @@
 	html * { font-family: Trebuchet MS; font-size: 12pt }
 	fieldset { border: none; padding: 0em; margin: 0em }
 	
-	#tabs { list-style-type: none; position: relative; top: 0em; left: 0em; width: 100% }
-	#tabs > li { display: inline; border: 1px solid silver; padding: 0em 1em }
+	#tabs { list-style-type: none; position: fixed; top: 0em; left: 0em; width: 100%; background: white; z-index: 5 }
 	#tabs input[type="radio"] { display: none }
 	#tabs input[type="radio"]:checked + * { font-weight: bold }	
 	#tabs label { display: inline; border: 1px solid silver; padding: 0em 1em }
@@ -358,7 +371,7 @@
 	#msgs .author { width: 8em; text-align: right; float: left; margin-right: -8em }
 	#msgs .text { margin: 0em 9em }
 	#chat { position: relative; visibility: hidden; }
-	#input-table { position: fixed; left: 0px; bottom: 0px; width: 100%; height: 7em; }
+	#input-table { position: fixed; left: 0px; bottom: 0px; width: 100%; height: 7em; z-index: 4; background: white }
 	#input-table td:first-child { width: 9em }
 	#input-table td:last-child { width: 6em }
 	#login { position: absolute; display: table; left: 1em; top: 1em }
@@ -380,15 +393,13 @@
   </style>
 </head>
 <body>
-	<form id="tab-group"><fieldset id="tabs">
-	
-	</fieldset></form>
+	<form id="tab-group"><fieldset id="tabs"></fieldset></form>
 	<div id="chat">
 		<div id="msgs"></div>
 		<table id="input-table"><tr>
 		<td>Controls</td>
 		<td><textarea id="message"></textarea></td>
-		<td><button type="button">Send</button></td>
+		<td><button type="button" onclick="sendTextMessage();">Send</button></td>
 		
 		</tr></table>
 	</div>
