@@ -56,7 +56,37 @@ TextProcessor.prototype.linebreak = function( node ) {
 }
 TextProcessor.prototype.linkify = function( node ) {
 	// process text nodes within node and insert links where appropriate
-	return node;
+	var currentNode, nextNode;
+	currentNode = node.firstChild;
+	nextNode = currentNode.nextSibling;
+	// iterate over node siblings
+	while ( currentNode != null ) {
+		if ( currentNode.nodeType == Node.TEXT_NODE ) {
+			var text = currentNode.nodeValue;
+			var urlRegex =/(\b\w+:\/\/\b[-\w\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF+&@#\/%?=~_|!:,.;\(\)]+)/ig;  
+			chunks = text.split( urlRegex );
+			currentNode.nodeValue = chunks[0];
+			for ( var i = 1; i < chunks.length; ++i ) {
+				if ( urlRegex.test( chunks[i] ) ) {
+					var linkNode = document.createElement( 'a' );
+					var linkText = decodeURIComponent((chunks[i]+'').replace(/\+/g, '%20'));
+					linkNode.appendChild( document.createTextNode( linkText ) );
+					linkNode.setAttribute( 'href', chunks[i] );
+					node.insertBefore( linkNode, nextNode );
+				} else {
+					node.insertBefore( document.createTextNode( chunks[i] ), nextNode );
+				}
+			}
+		} else if ( currentNode.nodeType == Node.ELEMENT_NODE ) {
+			if ( currentNode.hasChildNodes() )
+				TextProcessor.prototype.linkify( currentNode );
+		}
+		
+		currentNode = nextNode;
+		if ( currentNode ) {
+			nextNode = currentNode.nextSibling;
+		}
+	}
 }
 
 textProcessor = new TextProcessor();
