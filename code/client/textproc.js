@@ -88,6 +88,8 @@ TextProcessor.prototype.linkify = function( node ) {
 			nextNode = currentNode.nextSibling;
 		}
 	}
+	
+	return node;
 }
 
 textProcessor = new TextProcessor();
