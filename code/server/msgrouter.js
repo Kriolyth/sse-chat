@@ -116,7 +116,7 @@ function MessageRouter( router ) {
 	// public interface
 	return {
 		addHandler: function( filter, callback ) {
-			addHandler( filter, callback );
+			handlers.push( new Handler( filter, callback ) );
 		}
 		
 	}

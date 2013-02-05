@@ -1,6 +1,6 @@
 /*  
 	Processor
-	Retrieves the message from data received by listener
+	Transforms message into DOM nodes
 */
 
 function TextProcessor() {
@@ -59,11 +59,11 @@ TextProcessor.prototype.linkify = function( node ) {
 	var currentNode, nextNode;
 	currentNode = node.firstChild;
 	nextNode = currentNode.nextSibling;
-	// iterate over node siblings
+	// iterate over node children
 	while ( currentNode != null ) {
 		if ( currentNode.nodeType == Node.TEXT_NODE ) {
 			var text = currentNode.nodeValue;
-			var urlRegex =/(\b\w+:\/\/\b[-\w\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF+&@#\/%?=~_|!:,.;\(\)]+)/ig;  
+			var urlRegex =/(\b\w+:\/\/[-\w\u00A0-\uD7FF\uF900-\uFDCF\uFDF0-\uFFEF+&@#\/%?=~_|!:,.;\(\)]+)/ig;  
 			chunks = text.split( urlRegex );
 			currentNode.nodeValue = chunks[0];
 			for ( var i = 1; i < chunks.length; ++i ) {
@@ -72,6 +72,7 @@ TextProcessor.prototype.linkify = function( node ) {
 					var linkText = decodeURIComponent((chunks[i]+'').replace(/\+/g, '%20'));
 					linkNode.appendChild( document.createTextNode( linkText ) );
 					linkNode.setAttribute( 'href', chunks[i] );
+					linkNode.setAttribute( 'target', '_blank' );
 					node.insertBefore( linkNode, nextNode );
 				} else {
 					node.insertBefore( document.createTextNode( chunks[i] ), nextNode );
