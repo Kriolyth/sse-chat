@@ -23,8 +23,8 @@ function Handler( filter, func ) {
 Handler.prototype.catches = function( query ) {
 	return this.catcher.match( query );
 }
-Handler.prototype.call = function( session, query ) {
-	return this.handler( session, query );
+Handler.prototype.call = function( response, session, query ) {
+	return this.handler( response, session, query );
 }
 
 
