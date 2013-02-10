@@ -214,12 +214,29 @@
 	
 	function updateChannelTabs() {
 		var tabsNode = document.getElementById( 'tabs' );
-		while ( tabsNode.hasChildNodes() )
-			tabsNode.removeChild( tabsNode.lastChild );
+		var hasTabs = [];
+		for ( var node = tabsNode.firstChild; node != null; node = node.nextSibling ) {
+			// enlist all tabls
+			if ( node.dataset && node.dataset.channelId )
+				hasTabs.push( node.dataset.channelId );
+		}
+		if ( hasTabs.length == 0 && tabsNode.hasChildNodes() ) {
+			// it seems that dataset is not supported, so just remove all nodes
+			while ( tabsNode.hasChildNodes() )
+				tabsNode.removeChild( tabsNode.lastChild );
+		}
 		
 		for ( var i in channels ) {
 			var ch = channels[ i ];
+			var currentIdx = hasTabs.indexOf( ch.id );
+			if ( currentIdx >= 0 ) {
+				hasTabs.splice( currentIdx, 1 );
+				continue;
+			}
+			
 			var newTab = document.createElement( 'label' );
+			newTab.dataset.channelId = ch.id;
+			newTab.setAttribute( 'id', 'chantab_' + ch.id );
 			// <input type="radio" name="channel">
 			var opt = document.createElement( 'input' );
 			opt.setAttribute( 'name', 'channel' );
@@ -238,6 +255,13 @@
 			)( ch.id ) );
 			
 			tabsNode.appendChild( newTab );
+		}
+		
+		// Remove all tabs that were not found in the updated list
+		for ( var i in hasTabs ) {
+			var el = document.getElementById( 'chantab_' + hasTabs[i] );
+			if ( el && el.parentNode )
+				el.parentNode.removeChild( el );
 		}
 		
 		document.getElementById( 'msgs' ).style.top = tabsNode.offsetHeight + 'px';
@@ -356,7 +380,7 @@
 	#tabs { list-style-type: none; position: fixed; top: 0em; left: 0em; width: 100%; background: white; z-index: 5 }
 	#tabs input[type="radio"] { display: none }
 	#tabs input[type="radio"]:checked + * { font-weight: bold }	
-	#tabs label { display: inline; border: 1px solid silver; padding: 0em 1em }
+	#tabs label { display: inline-block; border: 1px solid silver; padding: 0em 1em }
 	#msgs {
 		padding: 0em 0em 8em;
 		position: relative;
