@@ -65,8 +65,16 @@ ServiceMsg.prototype.serialize = function() {
 	return 'event: sv\ndata: ' + JSON.stringify( this.msg ) + '\n\n';	
 }
 
+function ChanServMsg( channel, msg ) {
+	this.msg = new UserMsg( channel, { name: 'System' }, msg );	
+}
+ChanServMsg.prototype.serialize = function() {
+	return this.msg.serialize();
+}
+
 exports.KeepAliveMsg = KeepAliveMsg;
 exports.UserMsg = UserMsg;
 exports.HistoryMsg = HistoryMsg;
 exports.SysMsg = SysMsg;
 exports.ServiceMsg = ServiceMsg;
+exports.ChanServMsg = ChanServMsg;

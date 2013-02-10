@@ -1,23 +1,22 @@
 /*
-	PIN request/set command
+	Leave Channel command
 */
 
 var Sessions = require( '../session.js' ).Sessions;
 var Channels = require( '../channeldb.js' ).ChannelsDB;
 var Messages = require( '../message.js' );
 var Users = require('../userdb.js').UserDB;
+var Actions = require('../action.js');
 
 var Dispatcher = require( '../dispatcher.js' ).Dispatcher;
 
-
-var PinCmd = ( function() {	
+var LeaveChannelCmd = ( function() {	
 	function respondOk( response ) {
 		response.writeHead( 204, "K wait plz" );
 		response.end();
 	}
 	
-	function pin( response, session, query ) {
-		var newPin = query.msg.substr( 4 ).trim();
+	function leavechan( response, session, query ) {
 		var user = Users.get( session.user );
 		var chan = Channels.get( query.chan );
 		if (!( user && chan && chan.hasUser( user ) ) ) {
@@ -27,23 +26,14 @@ var PinCmd = ( function() {
 			respondOk( response );
 		}
 		
-		if ( '' == newPin ) {
-			// request current pin
-			var msg = new Messages.ChanServMsg( chan, 'Your pin is: ' + user.pin );
-			session.push( msg );
-		} else {
-			// set new pin
-			var msg = new Messages.ChanServMsg( chan, 'Sorry, not supported yet :) You requested pin ' + newPin );
-			session.push( msg );
-		}
+		Actions.leaveChannel( user, chan );		
 		
-		Dispatcher.queue( [session] );
 		return true;
 	}
 	return {
-		filter: { msg: { match: '/pin' } },
-		func: pin
+		filter: { msg: { match: '/leave' } },
+		func: leavechan
 	}
 } )();
 	
-exports.Cmd = PinCmd;
+exports.Cmd = LeaveChannelCmd;

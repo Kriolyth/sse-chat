@@ -16,7 +16,7 @@ var util = require('util');
 function joinChannel( user, channel ) {
 	// if we do not exist on channel yet
 	if ( channel.addUser( user ) ) {
-		// send service message to all user sessions for the joined user
+		// send service message to all user sessions of the joining user
 		var userMsg = new messages.ServiceMsg( {
 			event: 'join',
 			data: channel.serialize()
@@ -33,7 +33,7 @@ function joinChannel( user, channel ) {
 function leaveChannel( user, channel ) {
 	channel.delUser( user );
 	
-	// send service message to all user sessions for the joined user
+	// send service message to all user sessions of the leaving user
 	var userMsg = new messages.ServiceMsg( { 
 		event: 'leave',
 		data: channel.serialize()
