@@ -29,7 +29,7 @@ var CreateChannelCmd = ( function() {
 		}
 		
 		if ( Channels.findUserChannels( user ).length > MAX_CHANNELS_PER_USER ) {
-			var msg = new Messages.ChanServMsg( chan, 'Too many channels, please leave some' );
+			var msg = new Messages.SysMsg( chan, 'info', 'Too many channels, please leave some' );
 			session.push( msg );
 			
 			Dispatcher.queue( [session] );

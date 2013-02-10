@@ -17,7 +17,6 @@ var PinCmd = ( function() {
 	}
 	
 	function pin( response, session, query ) {
-		var newPin = query.msg.substr( 4 ).trim();
 		var user = Users.get( session.user );
 		var chan = Channels.get( query.chan );
 		if (!( user && chan && chan.hasUser( user ) ) ) {
@@ -27,15 +26,9 @@ var PinCmd = ( function() {
 			respondOk( response );
 		}
 		
-		if ( '' == newPin ) {
-			// request current pin
-			var msg = new Messages.ChanServMsg( chan, 'Your pin is: ' + user.pin );
-			session.push( msg );
-		} else {
-			// set new pin
-			var msg = new Messages.ChanServMsg( chan, 'Sorry, not supported yet :) You requested pin ' + newPin );
-			session.push( msg );
-		}
+		// request current pin
+		var msg = new Messages.SysMsg( chan, 'info', 'Your pin is: ' + user.pin );
+		session.push( msg );
 		
 		Dispatcher.queue( [session] );
 		return true;

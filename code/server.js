@@ -22,7 +22,7 @@ var users = require('./server/userdb.js').UserDB;
 var sessions = require('./server/session.js').Sessions;
 var actions = require('./server/action.js');
 var helpmsg = require('./server/helpmsg.js').HelpMsg;
-
+var userCmdHandler = require('./server/usercmd.js').UserCmdHandler( msgRouter );
 
 var defaultChan = channels.add();
 defaultChan.name = 'Public';
@@ -43,7 +43,7 @@ function welcomeProc( session ) {
 				// do not notify channel on second session
 				actions.enterChannel( user, chan );
 			}
-			// TODO: loadHistory
+
 			var history = chan.getHistory( user, { count: 20 } );
 			actions.sendHistory( session, history );
 		} );
@@ -52,6 +52,10 @@ function welcomeProc( session ) {
 		util.puts( 'Joining default channel for user ' + user.name + ', pin ' + user.pin );
 		actions.joinChannel( user, defaultChan );
 
+		session.push( helpmsg.msg( 'welcome', defaultChan ) );
+		session.push( helpmsg.msg( 'new_pin', defaultChan, user.pin ) );
+		session.push( helpmsg.msg( 'commands', defaultChan ) );
+		
 		var history = defaultChan.getHistory( user, { count: 20 } );
 		actions.sendHistory( session, history );
 	}

@@ -37,16 +37,16 @@ Channel.prototype.addNodeMessage = function( msg ) {
 Channel.prototype.findNodeAt = function( ts ) {
 	if ( !this.containerNode.hasChildNodes() )
 		return null;
-	else if ( this.containerNode.firstChild.dataset.ts >= ts )
-		return this.containerNode.firstChild;
 	else if ( ts >= this.containerNode.lastChild.dataset.ts )
 		return null;
+	else if ( this.containerNode.firstChild.dataset.ts >= ts )
+		return this.containerNode.firstChild;
 	
 	// Common cases are over, now do stupid loop search
 	var node = this.containerNode.firstChild;
 	while ( node = node.nextSibling ) {
 		if ( node.nodeType == Node.ELEMENT_NODE && 
-			 node.dataset.ts >= ts )
+			 node.dataset.ts > ts )
 			break;
 	}
 	
@@ -85,6 +85,7 @@ Channel.prototype.createMessageNode = function( msg ) {
 			case 'enter': fillNode( node, '', msg.ts, 'Это же ' + msg.detail.data.user + '!' ); break;
 			case 'exit': fillNode( node, '', msg.ts, 'Пока, ' + msg.detail.data.user + '!' ); break;
 			case 'join': fillNode( node, '', msg.ts, 'Слава роботам!' ); break;
+			case 'info': fillNode( node, '', msg.ts, msg.detail.data ); break;
 			default: fillNode( node, '', msg.ts, 'Роботам слава!' );
 		}
 	} else {
@@ -109,4 +110,7 @@ Channel.prototype.exit = function(msg) {
 Channel.prototype.leave = function(msg) {
 	this.addMessage( { ts: (new Date()).getTime(), cmd: 'leave', detail: msg } );
 	this.active = false;
+}
+Channel.prototype.info = function(msg) {
+	this.addMessage( { ts: (new Date()).getTime(), cmd: 'info', detail: msg } );
 }

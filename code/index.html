@@ -38,8 +38,8 @@
 		//alert( chatSession.id );
 		switchPanel( 'chat' );
 		
-		if ( response['pin'] )
-			showPin( response.pin );
+		//if ( response['pin'] )
+		//	showPin( response.pin );
 		
 		Settings.save();
 		startListener();
@@ -114,9 +114,9 @@
 		}
 	}
 	
-	function showPin( pin ) {
+	/* function showPin( pin ) {
 		alert( 'Ваш пин: ' + pin );
-	}
+	} // */
 
     var lastSentMessageId = Infinity,
         lastEventId = null;
@@ -181,6 +181,7 @@
 		switch( msg.command ) {
 			case 'enter':
 			case 'exit':
+			case 'info':
 				ch[ msg.command ]( msg );
 				onNewMessage( ch );
 				break;

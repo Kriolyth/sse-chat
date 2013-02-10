@@ -29,10 +29,6 @@ var defaultChan = channels.add();
 defaultChan.name = 'Public';
 defaultChan.isPublic = true;
 
-var defaultChan2 = channels.add();
-defaultChan2.name = 'Private';
-defaultChan2.isPublic = false;
-
 function welcomeProc( session ) {
 	util.puts( 'Welcome to session ' + session.id );
 	session.setNotifyClose( goodbyeProc );
@@ -48,7 +44,7 @@ function welcomeProc( session ) {
 				// do not notify channel on second session
 				actions.enterChannel( user, chan );
 			}
-			// TODO: loadHistory
+
 			var history = chan.getHistory( user, { count: 20 } );
 			actions.sendHistory( session, history );
 		} );
@@ -56,12 +52,12 @@ function welcomeProc( session ) {
 		// no channels for user 
 		util.puts( 'Joining default channel for user ' + user.name + ', pin ' + user.pin );
 		actions.joinChannel( user, defaultChan );
-		actions.joinChannel( user, defaultChan2 );
+		
+		session.push( helpmsg.msg( 'welcome', defaultChan ) );
+		session.push( helpmsg.msg( 'new_pin', defaultChan, user.pin ) );
+		session.push( helpmsg.msg( 'commands', defaultChan ) );
 
 		var history = defaultChan.getHistory( user, { count: 20 } );
-		actions.sendHistory( session, history );
-		
-		history = defaultChan2.getHistory( user, { count: 20 } );
 		actions.sendHistory( session, history );
 	}
 }

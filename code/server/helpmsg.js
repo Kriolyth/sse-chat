@@ -6,29 +6,34 @@
 
 var Messages = require( './message.js' );
 
-var welcomeMsg = 'Äîáðî ïîæàëîâàòü â Óþòíûé ×àòèê&tm;!';
-var newPinMsg = 'Çàïîìíèòå âàø íîâûé ïèí-êîä: %s';
+var welcomeMsg = 'Ð”Ð¾Ð±Ñ€Ð¾ Ð¿Ð¾Ð¶Ð°Ð»Ð¾Ð²Ð°Ñ‚ÑŒ Ð² Ð£ÑŽÑ‚Ð½Ñ‹Ð¹ Ð§Ð°Ñ‚Ð¸Ðºâ„¢';
+var newPinMsg = 'Ð—Ð°Ð¿Ð¾Ð¼Ð½Ð¸Ñ‚Ðµ Ð²Ð°Ñˆ Ð½Ð¾Ð²Ñ‹Ð¹ Ð¿Ð¸Ð½-ÐºÐ¾Ð´: %s';
+var cmdHelp = 'Ð•ÑÐ»Ð¸ Ð²Ñ‹ ÐµÐ³Ð¾ Ð²ÑÑ‘-Ñ‚Ð°ÐºÐ¸ Ð·Ð°Ð±ÑƒÐ´ÐµÑ‚Ðµ, Ð²Ð²ÐµÐ´Ð¸Ñ‚Ðµ /pin Ð´Ð»Ñ Ð½Ð°Ð¿Ð¾Ð¼Ð¸Ð½Ð°Ð½Ð¸Ñ';
 var chanHelpMsg = 'Channel help';
 
 function HelpMsg() {
 	this.messages = {
 		'welcome' : welcomeMsg,
 		'new_pin' : newPinMsg,
+		'commands' : cmdHelp,
 		'chan' : chanHelpMsg
 	};
 };
 
 HelpMsg.prototype.msg = function( name, channel ) {
-	var msg = ( this[name] ? this[name] : ( 'no_message ' + name ) );
+	var message = ( this.messages[name] ? this.messages[name] : ( 'no_message ' + name ) );
 	
 	// if there are arguments supplied, perform a call to 'format'
-	if ( arguments.length > 2 )  
-		msg = require('util').format.apply( undefined, msg, 
-			[].slice.call(arguments).slice(2) );
+	if ( arguments.length > 2 ) {
+		var args = Array.prototype.slice.call( arguments );
+		args.splice( 0, 2, message );
+		
+		message = require('util').format.apply( undefined, args );
+	}
 
-	return (new Messages.SysMsg( channel, 'info', msg ) );
+	return (new Messages.ChanServMsg( channel, message ) );
 }
 
-var helpMsg = HelpMsg();
+var helpMsg = new HelpMsg();
 
 exports.HelpMsg = helpMsg;
