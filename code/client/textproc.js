@@ -29,6 +29,21 @@ TextProcessor.prototype.remove = function( handler ) {
 };
 
 TextProcessor.prototype.linebreak = function( node ) {
+
+	function linebreakSplit( currentNode ) {
+		var text = currentNode.nodeValue;
+		var chunks = text.split( '\n' );
+		if ( chunks.length <= 1 ) 
+			return;
+		currentNode.nodeValue = chunks[0];
+		var parentNode = currentNode.parentNode;
+		var nextNode = currentNode.nextSibling;
+		for ( var i = 1; i < chunks.length; ++i ) {
+			parentNode.insertBefore( document.createElement( 'br' ), nextNode );
+			parentNode.insertBefore( document.createTextNode( chunks[i] ), nextNode );
+		}
+	}
+
 	// process text nodes within node and insert line breaks
 	var currentNode, nextNode;
 	currentNode = node.firstChild;
@@ -36,11 +51,23 @@ TextProcessor.prototype.linebreak = function( node ) {
 	while ( currentNode != null ) {
 		if ( currentNode.nodeType == Node.TEXT_NODE ) {
 			var text = currentNode.nodeValue;
-			var chunks = text.split( '\n' );
-			currentNode.nodeValue = chunks[0];
-			for ( var i = 1; i < chunks.length; ++i ) {
-				node.insertBefore( document.createElement( 'br' ), nextNode );
-				node.insertBefore( document.createTextNode( chunks[i] ), nextNode );
+			var paragraphRegex = /\n[\s\n]+/g;
+			var paragraphChunks = text.split( paragraphRegex );
+			if ( paragraphChunks.length > 1 ) {
+				for ( var pChunk = 0; pChunk < paragraphChunks.length; ++pChunk ) {
+					// create a node for each paragraph
+					var pNode = document.createElement( 'p' );
+					var textNode = document.createTextNode( paragraphChunks[ pChunk ] );
+					pNode.appendChild( textNode );
+					linebreakSplit( textNode );
+					
+					node.insertBefore( pNode, nextNode );
+				}
+				// remove current text node, because it is replaced with paragraphs
+				node.removeChild( currentNode );
+			} else {
+				// no paragraphs, text only
+				linebreakSplit( currentNode );
 			}
 		} else if ( currentNode.nodeType == Node.ELEMENT_NODE ) {
 			if ( currentNode.hasChildNodes() )

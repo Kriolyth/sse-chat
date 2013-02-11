@@ -86,11 +86,11 @@ Channel.prototype.createMessageNode = function( msg ) {
 			case 'exit': fillNode( node, '', msg.ts, 'Пока, ' + msg.detail.data.user + '!' ); break;
 			case 'join': fillNode( node, '', msg.ts, 'Слава роботам!' ); break;
 			case 'info': fillNode( node, '', msg.ts, msg.detail.data ); break;
-			default: fillNode( node, '', msg.ts, 'Роботам слава!' );
+			case 'leave': fillNode( node, '', msg.ts, 'Роботам слава!' ); break;
+			default: fillNode( node, '', msg.ts, 'Влатсь роботам!' );
 		}
 	} else {
 		node = document.createElement( 'article' );
-		//node.appendChild( document.createTextNode( JSON.stringify( msg ) ) );
 		fillNode( node, msg.user, msg.ts, msg.msg );
 	}
 	node.dataset.ts = msg.ts;
