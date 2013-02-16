@@ -1,5 +1,5 @@
-function Auth( id, name ) {
-	this.creds = { id: id, name: name };
+function Auth( credentials ) {
+	this.creds = credentials;
 	this.ok = this.err = this.fatal = this.defaultHandler;
 }
 
@@ -9,7 +9,7 @@ Auth.prototype.auth = function( uri, pin ) {
 	xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
 	xhr.onreadystatechange = (function _wrapXhr(t,x){ return function(){t.handleXhr(x);} })(this,xhr);
 	
-	var authData = { id: this.creds.id, name: this.creds.name };
+	var authData = { id: this.creds.id, name: this.creds.name, isGuest: this.creds.isGuest };
 	var dataObj = encodeObject( authData );
 	console.log( 'auth string: ' + dataObj );
 	if ( pin !== undefined )
