@@ -18,15 +18,27 @@ function UserMsg( channel, from, msg ) {
 	this.ts = ts;
 	this.user = from.name;
 	this.msg = msg;
+	
+	if ( from['isRegistered'] && !from.isRegistered() ) {
+		this.isGuest = true;
+	}
+	if ( from['id'] )
+		this.uid = from.id;
 }
 UserMsg.prototype.serialize = function() {
-	return 'id: ' + this.id + 
-		'\ndata: ' + JSON.stringify( { 
+	var msgObj = { 
 			ts: this.ts,
 			user: this.user,
 			channel: this.channel,
 			msg: this.msg
-		} ) + '\n\n';	
+		};
+	if ( this['isGuest'] )
+		msgObj.guest = '1';
+	if ( this['uid'] )
+		msgObj.uid = this.uid;
+		
+	return 'id: ' + this.id + 
+		'\ndata: ' + JSON.stringify( msgObj ) + '\n\n';	
 }
 
 function HistoryMsg( channel, from, msg, timestamp ) {

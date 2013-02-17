@@ -62,6 +62,7 @@ Channel.prototype.createMessageNode = function( msg ) {
 		if ( who.trim() != '' ) {
 			whoNode.appendChild( document.createTextNode( who.trim() ) );
 			whoNode.setAttribute( 'class', 'author' );
+			
 			node.appendChild( whoNode );
 		}
 		// add timestamp part 
@@ -92,6 +93,11 @@ Channel.prototype.createMessageNode = function( msg ) {
 	} else {
 		node = document.createElement( 'article' );
 		fillNode( node, msg.user, msg.ts, msg.msg );
+		
+		var classname = '';
+		if ( msg.ownmsg ) classname += 'self';
+		else if ( msg.guestmsg ) classname += 'guest';
+		node.setAttribute( 'class', classname.trim() );
 	}
 	node.dataset.ts = msg.ts;
 	return node;

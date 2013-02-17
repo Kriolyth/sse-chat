@@ -11,7 +11,7 @@
   <script type="text/javascript" src="client/processor.js"></script>
   <script type="text/javascript" src="client/textproc.js"></script>
   <script type="text/javascript">
-	var chatSession = { id: 0, user: 0, name: '' };
+	var chatSession = { id: 0, userId: 0, name: '' };
 	var channels = {};
 	var active_chan = null;
 	var server_host = '/sse-chat/server/';
@@ -22,7 +22,7 @@
 	
 	function presentLoginForm() {
 		var form = document.getElementById('loginForm');
-		form.elements['id'].value = Settings.user;
+		form.elements['id'].value = Settings.userId;
 		form.elements['name'].value = Settings.name;
 	}
 	
@@ -30,9 +30,9 @@
 	function authOk( response ) {
 		if ( !response['session'] ) return;
 		chatSession.id = response.session;
-		chatSession.user = response.user;
+		chatSession.userId = response.userId;
 		chatSession.name = response.username;
-		Settings.user = chatSession.user;
+		Settings.userId = chatSession.userId;
 		Settings.name = chatSession.name;
 		
 		//alert( chatSession.id );
@@ -99,15 +99,14 @@
 			auth.ok = authOk;
 			auth.err = authErr;
 			auth.auth( server_host + 'auth', form.pin );
-		} else */ {
-			// preserve user ID for this computer
-			if ( form.id != 0 && form.name != Settings.name )
-				form.id = 0;
-			var auth = new Auth( { id: form.id, name: form.name, isGuest: true } );
-			auth.ok = authOk;
-			auth.err = authErr;
-			auth.auth( server_host + 'auth' );
-		}
+		} else */
+		// preserve user ID for this computer
+		if ( form.id != 0 && form.name != Settings.name )
+			form.id = 0;
+		var auth = new Auth( { id: form.id, name: form.name, isGuest: true } );
+		auth.ok = authOk;
+		auth.err = authErr;
+		auth.auth( server_host + 'auth' );
 		
 		return false;
 	}
@@ -188,7 +187,11 @@
 	function onUserMessage( msg ) {
 		var ch = channels[ msg.channel ];
 		if ( ch === undefined ) return;
-		
+
+		if ( msg['uid'] && msg.uid == chatSession.userId )
+			msg.ownmsg = true;
+		if ( msg['guest'] )
+			msg.guestmsg = true;
 		ch.addMessage( msg );
 		onNewMessage( ch );
 	}
@@ -401,13 +404,11 @@
 	#login #guestchk ~ label + label { margin-left: 0.5em; }
 	#login #guestchk:checked ~ label#lbl-guest, #login #guestchk:not(:checked) ~ label#lbl-registered { font-weight: bold; border-bottom: none }
 		
-	.self { color: gray; }
-	.other { color: black; }
-	.system { color: black; font-style: italic }
+	#msgs article { color: black; }
+	#msgs article.self { color: #9999ff; }
+	#msgs article.guest { color: #777; }
 	
 	.author { font-weight: bold; margin-right: 1em; width: 10em }
-	.author.self { color: blue; }
-	.author.other { color: black; }
 	
 	.timestamp { color: gray;}
   </style>
@@ -431,13 +432,12 @@
 		<fieldset class="registered">
 			<!-- label>Логин: <input type="text" name="login" id="login" /></label>
 			<label>Пин: <input type="text" name="pin" id="pin" size="5" maxlength="4" value=""/></label>
-			<input type="hidden" name="id" value="0" />
 			<input type="submit" value="Ок" / -->
 			<p>Регистрация пользователей ещё не готова. Побудьте пока дорогим гостем :)
 		</fieldset><fieldset class="guest">
 			<label>Ваше имя: <input type="text" name="name" id="name" /></label>
 			<input type="hidden" name="id" value="0" />
-			<input type="submit" value="Ок" />		
+			<input type="submit" value="Ок" />
 		</fieldset>
 			<p id="loginError"></p>
 		</form>	
