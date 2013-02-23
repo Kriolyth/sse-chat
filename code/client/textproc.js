@@ -119,6 +119,29 @@ TextProcessor.prototype.linkify = function( node ) {
 	return node;
 }
 
+TextProcessor.prototype.formatTime = function( then, now ) {
+	var tsText;
+	if ( now === undefined )
+		now = new Date();
+	var timeDiff = Math.abs( now - then );
+	var dayDiff = now.getDay() - then.getDay();
+	if ( timeDiff > 86400*1000 || dayDiff != 0 ) {
+		// different day
+		if ( timeDiff < 2*86400*1000 ) {
+			if ( dayDiff == 1 ) tsText = then.format( 'вчера, HH:MM' );
+			else if ( dayDiff == -1 ) tsText = then.format( 'завтра, HH:MM' );
+			else tsText = then.format( 'd mmm HH:MM' );
+		} else {
+			// some time ago
+			tsText = then.format( 'd mmm HH:MM' );			
+		}
+	} else {
+		// same day
+		tsText = then.format( 'HH:MM' );
+	}
+	return tsText;
+}
+
 textProcessor = new TextProcessor();
 textProcessor.add( TextProcessor.prototype.linebreak );
 textProcessor.add( TextProcessor.prototype.linkify );

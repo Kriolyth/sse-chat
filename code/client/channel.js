@@ -66,7 +66,7 @@ Channel.prototype.createMessageNode = function( msg ) {
 			node.appendChild( whoNode );
 		}
 		// add timestamp part 
-		var tsText = ( new Date(ts) ).format( 'HH:MM' );
+		var tsText = TextProcessor.prototype.formatTime( new Date(ts) );
 		tsNode.appendChild( document.createTextNode( tsText ) );
 		tsNode.setAttribute( 'class', 'timestamp' );
 		
