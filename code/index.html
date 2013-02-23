@@ -35,14 +35,22 @@
 		Settings.userId = chatSession.userId;
 		Settings.name = chatSession.name;
 		
-		//alert( chatSession.id );
 		switchPanel( 'chat' );
 		
-		//if ( response['pin'] )
-		//	showPin( response.pin );
-		
 		Settings.save();
-		startListener();
+		
+		var proc = new Processor();
+		proc.userMsg = onUserMessage;
+		proc.sysMsg = onSysMessage;
+		proc.serviceMsg = onSrvMessage;
+		
+		// Only start listener after we authorized
+		var listener = new Listener( proc );
+		listener.listen( server_host + 'session?id=' + chatSession.id );
+		
+		window.onfocus = onFocus;
+		window.onblur = onBlur;
+		document.addEventListener( 'visibilitychange', visibilityChange );
 	}
 	function authErr( response ) {
 		chatSession.id = 0;
@@ -78,29 +86,19 @@
 		switch( panel ) {
 			case 'chat':
 				document.getElementById( 'chat' ).style.visibility = 'visible';
-				document.getElementById( 'tabs' ).style.visibility = 'visible';
+				document.getElementById( 'tab-group' ).style.visibility = 'visible';
 				document.getElementById( 'login' ).style.visibility = 'hidden';
 				break;
 			case 'login':
 				document.getElementById( 'chat' ).style.visibility = 'hidden';
-				document.getElementById( 'tabs' ).style.visibility = 'hidden';
+				document.getElementById( 'tab-group' ).style.visibility = 'hidden';
 				document.getElementById( 'login' ).style.visibility = 'visible';
 				break;
-			default:
-				// TODO: tab processing
 		}
 	}
 	
 	function submitLogin( form ) {
 		// test if name was changed, so that id will have to be reset
-		/*if ( !form.is_guest ) {
-			// member auth with login/password
-			var auth = new AuthMember( 0, form.login );
-			auth.ok = authOk;
-			auth.err = authErr;
-			auth.auth( server_host + 'auth', form.pin );
-		} else */
-		// preserve user ID for this computer
 		if ( form.id != 0 && form.name != Settings.name )
 			form.id = 0;
 		var auth = new Auth( { id: form.id, name: form.name, isGuest: true } );
@@ -197,8 +195,10 @@
 	}
 	
 	function onNewMessage( channel ) {
-		if ( active_chan == channel.id )
+		if ( active_chan == channel.id ) {
 			setTimeout( function() { scrollToLastMessage(); }, 0 );
+			setTimeout( function() { offscreenMsgHandler(); }, 0 );
+		}
 	}
 	
 	function scrollToLastMessage() {
@@ -208,7 +208,6 @@
 			window.scrollTo( window.scrollX, objDiv.offsetTop );
 		}
 			
-		offscreenMsgHandler();
 	}
 	
 	function updateChannelTabs() {
@@ -289,23 +288,6 @@
 		}
 	}
 	
-	function startListener() {
-		if ( 0 == chatSession.id ) return false;
-		
-		window.onfocus = onFocus;
-		window.onblur = onBlur;
-		document.addEventListener( 'visibilitychange', visibilityChange );
-		
-		var proc = new Processor();
-		proc.userMsg = onUserMessage;
-		proc.sysMsg = onSysMessage;
-		proc.serviceMsg = onSrvMessage;
-		
-		// Only start listener after we authorized
-		var listener = new Listener( proc );
-		listener.listen( server_host + 'session?id=' + chatSession.id );
-	}
-	
 	function switchChannel( id ) {
 		var el = document.getElementById( 'msgs' );
 		var ch = channels[ id ];
@@ -367,6 +349,11 @@
 	html * { font-family: Trebuchet MS; font-size: 12pt }
 	fieldset { border: none; padding: 0em; margin: 0em }
 	
+	input[type="checkbox"].switch { display: none }
+	input[type="checkbox"].switch:checked ~ .unchecked { display: none }
+	input[type="checkbox"].switch:not(:checked) ~ .checked { display: none }
+	
+	#tab-group { visibility: hidden }
 	#tabs { list-style-type: none; position: fixed; top: 0em; left: 0em; width: 100%; background: white; z-index: 5 }
 	#tabs input[type="radio"] { display: none }
 	#tabs input[type="radio"]:checked + * { font-weight: bold }	
@@ -397,8 +384,6 @@
 	#message { width: 100%; height: 6em }
 	
 	#login fieldset { margin-top: 1em }
-	#login #guestchk { display: none }
-	#login #guestchk:not(:checked) ~ .guest, #guestchk:checked ~ .registered { display: none }
 	
 	#login #guestchk ~ label { background: white; border-bottom: 1px dashed; cursor: pointer  }
 	#login #guestchk ~ label + label { margin-left: 0.5em; }
@@ -414,7 +399,10 @@
   </style>
 </head>
 <body>
-	<form id="tab-group"><fieldset id="tabs"></fieldset></form>
+	<form id="tab-group">
+		<fieldset id="tabs"></fieldset>
+		<fieldset id="tab-new"><input type="checkbox" class="switch" id="newtabchk"/><label class="unchecked" for="newtabchk">+</label></fieldset>
+	</form>
 	<div id="chat">
 		<div id="msgs"></div>
 		<table id="input-table"><tr>
@@ -426,15 +414,12 @@
 	</div>
 	<div id="login">
 		<form action="?" onsubmit="return submitLogin(convertFormToObject(this));" id="loginForm">
-			<input type="checkbox" id="guestchk" name="is_guest" checked/>
+			<input type="checkbox" id="guestchk" name="is_guest" class="switch" checked/>
 			<label for="guestchk" id="lbl-registered">Участник</label>
 			<label for="guestchk" id="lbl-guest">Гость</label>
-		<fieldset class="registered">
-			<!-- label>Логин: <input type="text" name="login" id="login" /></label>
-			<label>Пин: <input type="text" name="pin" id="pin" size="5" maxlength="4" value=""/></label>
-			<input type="submit" value="Ок" / -->
-			<p>Регистрация пользователей ещё не готова. Побудьте пока дорогим гостем :)
-		</fieldset><fieldset class="guest">
+		<fieldset class="unchecked">
+			Регистрация пользователей ещё не готова. Побудьте пока дорогим гостем :)
+		</fieldset><fieldset class="checked">
 			<label>Ваше имя: <input type="text" name="name" id="name" /></label>
 			<input type="hidden" name="id" value="0" />
 			<input type="submit" value="Ок" />
