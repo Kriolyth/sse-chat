@@ -2,15 +2,16 @@
 	ID helper class
 */
 
-var ID = (function(){
-		/*
-			To quote section 2.3 of RFC 3986:
+/*
+	To quote section 2.3 of RFC 3986:
 
-			"Characters that are allowed in a URI but do not have a reserved purpose are called unreserved. 
-			These include uppercase and lowercase letters, decimal digits, hyphen, period, underscore, and tilde."
-		
-		*/
-		var key = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~0123456789';
+	"Characters that are allowed in a URI but do not have a reserved purpose are called unreserved. 
+	These include uppercase and lowercase letters, decimal digits, hyphen, period, underscore, and tilde."
+
+*/
+var key = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz~0123456789';
+
+var ID = (function(){
 		return {
 			newid: function() {
 				return Math.floor( Math.random() * 16776214 ) + 1001;
@@ -41,5 +42,16 @@ var ID = (function(){
 			}
 		};
 	})();
+var ID8 = (function(){
+		return {
+			// return an url-friendly ID
+			newid: function() {
+				var chars03 = Math.floor( Math.random() * (1<<24) ) >>> 0;
+				var chars47 = Math.floor( Math.random() * (1<<24) ) >>> 0;
+				return ID.id2s( chars03 ) + ID.id2s( chars47 );
+			}
+		};
+	})();
 
 exports.ID = ID;
+exports.ID8 = ID8;
