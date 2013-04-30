@@ -25,21 +25,27 @@ Invite.prototype.TY_LINK = 'permalink';
 
 Invite.prototype.TG_CHAN = 'channel';
 
-Invite.prototype.is_expired = function() {
+Invite.prototype.ER_INVALID = 'Invitation is not valid';
+
+Invite.prototype.isExpired = function() {
 	return ( this.use_limit && this.use_count > this.use_limit ) &&
 		( this.expire_date && ( (new Date()).getTime() ) > this.expire_date );
 }
-Invite.prototype.is_invalid = function() {
-	return this.is_expired() ||
-		( this.invalid_before && ( (new Date()).getTime() ) < this.invalid_before );
+Invite.prototype.isInvalid = function() {
+	return ( this.invalid_before && ( (new Date()).getTime() ) < this.invalid_before ) 
+		|| this.isExpired();
 }
 
 Invite.prototype.use = function() {
-	if ( this.is_invalid() )
+	if ( this.isInvalid() )
 		return false;
 	++this.use_count;
-	this.expired = this.is_expired() ? 1 : 0;
+	this.expired = this.isExpired() ? 1 : 0;
 	return true;
+}
+
+Invite.prototype.url = function() {
+	return 'invite://' + this.id;
 }
 
 exports.Invite = Invite;

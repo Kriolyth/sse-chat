@@ -119,6 +119,54 @@ TextProcessor.prototype.linkify = function( node ) {
 	return node;
 }
 
+TextProcessor.prototype.linkifyInvite = function( node ) {
+	// process text nodes within node and insert invite links where appropriate
+	var currentNode, nextNode;
+	currentNode = node.firstChild;
+	nextNode = currentNode.nextSibling;
+	// iterate over node children
+	while ( currentNode != null ) {
+		if ( currentNode.nodeType == Node.TEXT_NODE ) {
+			var text = currentNode.nodeValue;
+			var urlRegex =/(\binvite:\/\/[A-Za-z0-9\-~]{8})/ig;  
+			chunks = text.split( urlRegex );
+			currentNode.nodeValue = chunks[0];
+			for ( var i = 1; i < chunks.length; ++i ) {
+				if ( urlRegex.test( chunks[i] ) ) {
+					var linkNode = document.createElement( 'a' );
+					var linkHref = document.URL + '/i/' + 
+						chunks[i].substring( String('invite://'.length) );
+					linkNode.appendChild( document.createTextNode( chunks[i] ) );
+					linkNode.setAttribute( 'href', linkHref );
+					linkNode.setAttribute( 'target', '_blank' );
+
+					// Click handler for internal usage, so it would not open a new window,
+					// but rather open a new channel tab
+					linkNode.addEventHandler( 'click', 
+						function(){ alert( 'This feature is still in progress :)' ); 
+							return false; 
+						} );
+					
+					node.insertBefore( linkNode, nextNode );
+				} else {
+					node.insertBefore( document.createTextNode( chunks[i] ), nextNode );
+				}
+			}
+		} else if ( currentNode.nodeType == Node.ELEMENT_NODE ) {
+			if ( currentNode.hasChildNodes() )
+				TextProcessor.prototype.linkifyInvite( currentNode );
+		}
+		
+		currentNode = nextNode;
+		if ( currentNode ) {
+			nextNode = currentNode.nextSibling;
+		}
+	}
+	
+	return node;
+}
+
+
 TextProcessor.prototype.formatTime = function( then, now ) {
 	var tsText;
 	if ( now === undefined )

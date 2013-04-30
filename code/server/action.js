@@ -8,6 +8,7 @@ var channels = require('./channeldb.js').ChannelsDB;
 var users = require('./userdb.js').UserDB;
 var sessions = require( './session.js' ).Sessions;
 var messages = require( './message.js' );
+var invites = require( './invitedb.js' ).InvitesDB;
 
 var dispatcher = require( './dispatcher.js' ).Dispatcher;
 
@@ -97,6 +98,26 @@ function sendHistory( session, history ) {
 	dispatcher.queue( [session] );
 }
 
+function activateInvitation( session, invite ) {
+	var user = users.get( session.user );
+	
+	if ( invite.target_type == Invite.prototype.TG_CHAN ) {
+		var channel = channels.get( invite.target_id );
+		var act_result = channel.processInvite( user, invite );
+		if ( act_result.processed ) {
+			joinChannel( user, channel );
+		}
+		if ( act_result.consumed ) {
+			invites.update( invite );
+		}
+		var msg = new messages.ServiceMsg( {
+				event: 'invite_result',
+				data: act_result
+			} );
+		session.push( msg );
+	}
+}
+
 
 exports.joinChannel = joinChannel;
 exports.enterChannel = enterChannel;
@@ -104,3 +125,4 @@ exports.leaveChannel = leaveChannel;
 exports.exitChannel = exitChannel;
 exports.listChannels = listChannels;
 exports.sendHistory = sendHistory;
+exports.activateInvitation = activateInvitation;

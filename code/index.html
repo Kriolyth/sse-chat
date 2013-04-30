@@ -161,6 +161,10 @@
 					}
 				}
 				break;
+			case 'invite_result':
+				if ( !msg.data.processed )
+					alert( msg.data.msg );
+				break;
 			default:
 				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
 		}

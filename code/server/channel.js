@@ -21,6 +21,10 @@ Channel.prototype.EV_JOIN = 'join';
 Channel.prototype.EV_LEAVE = 'leave';
 Channel.prototype.EV_TOPIC = 'topic';
 
+Channel.prototype.ER_INVITE_WRONG_TARGET = 'Invitation is not meant for this channel';
+Channel.prototype.ER_ALREADY_INVITED     = 'User is already present on this channel';
+Channel.prototype.ER_INVITE_OK           = 'Invitation acknowledged';
+
 Channel.prototype.addUser = function( user, role ) {
 	if ( !this.hasUser( user ) ) {
 		this.users[ user.id ] = 'guest';
@@ -149,6 +153,34 @@ Channel.prototype.getHistory = function( user, limits ) {
 	}
 	
 	return result;
+}
+
+Channel.prototype.processInvite = function( user, invite ) {
+	if ( invite[ 'target_type' ] != Invite.prototype.TG_CHAN 
+		|| invite.isInvalid() 
+		)
+		return { consumed: false, processed: false, 
+			msg: Invite.prototype.ER_INVALID };
+	if ( invite.target_id != this.id ) 
+		return { consumed: false, processed: false, 
+			msg: Channel.prototype.ER_INVITE_WRONG_TARGET };
+	
+	if ( this.hasUser( user ) ) {
+		return { consumed: false, processed: false, 
+			msg: Channel.prototype.ER_ALREADY_INVITED };
+	}
+	
+	if ( invite.target_type == Invite.prototype.TY_LINK ) {
+		return { consumed: false, processed: true, 
+			msg: Channel.prototype.ER_INVITE_OK };
+	} else if ( invite.target_type == Invite.prototype.TY_INVITE ) {
+		invite.use();
+		return { consumed: true, processed: true, 
+			msg: Channel.prototype.ER_INVITE_OK };
+	} else {
+		return { consumed: false, processed: false, 
+			msg: 'Unknown invitation type' };
+	}
 }
 
 
