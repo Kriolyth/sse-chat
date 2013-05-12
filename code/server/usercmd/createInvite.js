@@ -33,7 +33,7 @@ var CreateInviteCmd = ( function() {
 		}
 		
 		// create new Invite
-		var opts = { use_limit: 1; expire_date: (new Date()).getTime() + 14*86400 };
+		var opts = { use_limit: 1, expire_date: (new Date()).getTime() + 14*86400 };
 		var args = query.msg.substr.substring( String('/mkinvite').length + 1 );
 		
 		if ( args.length > 0 ) {
@@ -47,7 +47,7 @@ var CreateInviteCmd = ( function() {
 				var reply = new Messages.ChanServMsg( chan, 'Your invitation to this channel: ' + invite.url() );
 				session.push( reply );
 				
-			} catch(...) {
+			} catch(e) {
 				var reply = new Messages.ChanServMsg( chan, MSG_HELP );
 				session.push( reply );
 			}
@@ -56,10 +56,10 @@ var CreateInviteCmd = ( function() {
 		Dispatcher.queue( [session] );
 		return true;
 	}
-	return {
-		filter: { msg: { match: '/mkinvite' } },
-		func: new_invite
-	}
+	return [ 
+		{ filter: { msg: { match: '/mkinvite' } },
+		  func: new_invite }
+	]
 } )();
 	
 exports.Cmd = CreateInviteCmd;

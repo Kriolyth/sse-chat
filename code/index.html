@@ -97,11 +97,25 @@
 		}
 	}
 	
+	function submitAddChannel() {
+		var form = document.getElementById( 'tab-group' );
+		var formData = convertFormToObject( form );
+		var request_object = { id: chatSession.id, cmd: 'newchan', name: formData.chan_name };
+		post( 'cmd/', request_object, function _AddChanCmdCallback(status,cmd) {
+				switch( status ) {
+					case 204:
+						document.getElementById( 'newtabchk' ).checked = false;
+						break;
+				}
+			} );
+	}
+	
 	function submitLogin( form ) {
+		var formData = convertFormToObject( form );
 		// test if name was changed, so that id will have to be reset
-		if ( form.id != 0 && form.name != Settings.name )
-			form.id = 0;
-		var auth = new Auth( { id: form.id, name: form.name, isGuest: true } );
+		if ( formData.id != 0 && formData.name != Settings.name )
+			formData.id = 0;
+		var auth = new Auth( { id: formData.id, name: formData.name, isGuest: true } );
 		auth.ok = authOk;
 		auth.err = authErr;
 		auth.auth( server_host + 'auth' );
@@ -233,8 +247,8 @@
 			
 			var newTab = document.createElement( 'label' );
 			newTab.setAttribute( 'class', 'btn' );
-			newTab.dataset.channelId = ch.id;
 			newTab.setAttribute( 'id', 'chantab_' + ch.id );
+			newTab.dataset.channelId = ch.id;
 			// <input type="radio" name="channel">
 			var opt = document.createElement( 'input' );
 			opt.setAttribute( 'name', 'channel' );
@@ -335,12 +349,14 @@
 
     window.onload = onDomReady;
 
-    function post( url, msg_object ) {
+    function post( url, msg_object, status_cb ) {
 		var xhr = new XMLHttpRequest();
 		xhr.open( 'POST', server_host + url, true );
 		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
 		xhr.onreadystatechange = function () {
-			if ( xhr.readyState === 4 ) {				
+			if ( xhr.readyState === 4 ) {
+				if ( status_cb !== undefined )
+					status_cb( xhr.status, msg_object );
 				console.info( xhr.statusText + ' ' + xhr.responseText );
 			}
 		};
@@ -413,7 +429,7 @@
 				<input type="checkbox" class="switch" id="newtabchk"/>
 				<label class="unchecked" for="newtabchk">+</label>
 				<label class="checked">Имя:<input type="text" name="chan_name" size="16" maxlength="16" value="" /></label>
-				<input class="checked" type="submit" value="Создать" onclick="return false;" />
+				<input class="checked" type="submit" value="Создать" onclick="submitAddChannel(); return false;" />
 				<label class="checked" for="newtabchk">&lt;</label>
 			</span>
 		</fieldset>
@@ -428,7 +444,7 @@
 		</tr></table>
 	</div>
 	<div id="login">
-		<form action="?" onsubmit="return submitLogin(convertFormToObject(this));" id="loginForm">
+		<form action="?" onsubmit="return submitLogin(this);" id="loginForm">
 			<input type="checkbox" id="guestchk" name="is_guest" class="switch" checked/>
 			<label for="guestchk" id="lbl-registered">Участник</label>
 			<label for="guestchk" id="lbl-guest">Гость</label>

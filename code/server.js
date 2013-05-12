@@ -18,11 +18,12 @@ var auth = require('./server/auth.js').AuthProcessor( router );
 var initiator = require('./server/initiator.js').Initiator( router );
 var channels = require('./server/channeldb.js').ChannelsDB;
 var msgRouter = require('./server/msgrouter.js').MessageRouter( router );
+var cmdRouter = require('./server/cmdrouter.js').CommandRouter( router );
 var users = require('./server/userdb.js').UserDB;
 var sessions = require('./server/session.js').Sessions;
 var actions = require('./server/action.js');
 var helpmsg = require('./server/helpmsg.js').HelpMsg;
-var userCmdHandler = require('./server/usercmd.js').UserCmdHandler( msgRouter );
+var userCmdHandler = require('./server/usercmd.js').UserCmdHandler( msgRouter, cmdRouter );
 
 var defaultChan = channels.add();
 defaultChan.name = 'Public';

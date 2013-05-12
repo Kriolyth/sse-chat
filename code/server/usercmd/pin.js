@@ -33,10 +33,10 @@ var PinCmd = ( function() {
 		Dispatcher.queue( [session] );
 		return true;
 	}
-	return {
-		filter: { msg: { match: '/pin' } },
-		func: pin
-	}
+	return [ 
+		{ filter: { msg: { match: '/pin' } },
+		  func: pin }
+	]
 } )();
 	
 exports.Cmd = PinCmd;

@@ -22,7 +22,7 @@ var users = require('./server/userdb.js').UserDB;
 var sessions = require('./server/session.js').Sessions;
 var actions = require('./server/action.js');
 var helpmsg = require('./server/helpmsg.js').HelpMsg;
-var userCmdHandler = require('./server/usercmd.js').UserCmdHandler( msgRouter );
+var userCmdHandler = require('./server/usercmd.js').UserCmdHandler( msgRouter, router );
 
 
 var defaultChan = channels.add();

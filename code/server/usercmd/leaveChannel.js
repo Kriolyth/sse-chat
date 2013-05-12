@@ -30,10 +30,10 @@ var LeaveChannelCmd = ( function() {
 		
 		return true;
 	}
-	return {
-		filter: { msg: { match: '/leave' } },
-		func: leavechan
-	}
+	return [
+		{ filter: { msg: { match: '/leave' } },
+		  func: leavechan }
+	]
 } )();
 	
 exports.Cmd = LeaveChannelCmd;
