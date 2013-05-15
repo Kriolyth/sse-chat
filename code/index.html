@@ -266,10 +266,13 @@
 				} }
 			)( ch.id ) );
 			
+			// Insert new channel tab before the "new channel" tab
 			if ( !tabsNode.hasChildNodes() )
 				tabsNode.appendChild( newTab );
+			//else if ( tabsNode.lastChild.isEqualNode( tabsNode.firstChild ) )
+			//	tabsNode.insertBefore( newTab, tabsNode.lastChild );
 			else
-				tabsNode.insertBefore( newTab, tabsNode.firstChild );
+				tabsNode.insertBefore( newTab, document.getElementById( 'newchan' ) );
 		}
 		
 		// Remove all tabs that were not found in the updated list

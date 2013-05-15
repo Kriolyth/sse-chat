@@ -34,7 +34,7 @@ var CreateInviteCmd = ( function() {
 		
 		// create new Invite
 		var opts = { use_limit: 1, expire_date: (new Date()).getTime() + 14*86400 };
-		var args = query.msg.substr.substring( String('/mkinvite').length + 1 );
+		var args = query.msg.substr( String('/mkinvite').length + 1 );
 		
 		if ( args.length > 0 ) {
 			try {
@@ -43,15 +43,16 @@ var CreateInviteCmd = ( function() {
 							opts[k] = v;
 					}
 				);
-				var invite = Invites.add( opts );
-				var reply = new Messages.ChanServMsg( chan, 'Your invitation to this channel: ' + invite.url() );
-				session.push( reply );
-				
 			} catch(e) {
-				var reply = new Messages.ChanServMsg( chan, MSG_HELP );
-				session.push( reply );
+				session.push( new Messages.ChanServMsg( chan, MSG_HELP ) );
+				session.push( new Messages.ChanServMsg( chan, 'Your input: ' + args + '\n' + e ) );
+				Dispatcher.queue( [session] );
+				return true;
 			}
 		}
+		var invite = Invites.add( opts );
+		var reply = new Messages.ChanServMsg( chan, 'Your invitation to this channel: ' + invite.url() );
+		session.push( reply );
 		
 		Dispatcher.queue( [session] );
 		return true;

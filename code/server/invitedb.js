@@ -24,8 +24,8 @@ function createInvitesDB() {
 			options.id = id;
 			var new_invite = new Invite( options );
 			
-			invites[ id ] = invite;
-			return invite;
+			invites[ id ] = new_invite;
+			return new_invite;
 		}
 		
 		return {

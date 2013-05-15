@@ -134,7 +134,7 @@ TextProcessor.prototype.linkifyInvite = function( node ) {
 			for ( var i = 1; i < chunks.length; ++i ) {
 				if ( urlRegex.test( chunks[i] ) ) {
 					var linkNode = document.createElement( 'a' );
-					var linkHref = document.URL + '/i/' + 
+					var linkHref = document.URL + '?i=' + 
 						chunks[i].substring( String('invite://'.length) );
 					linkNode.appendChild( document.createTextNode( chunks[i] ) );
 					linkNode.setAttribute( 'href', linkHref );
@@ -142,7 +142,7 @@ TextProcessor.prototype.linkifyInvite = function( node ) {
 
 					// Click handler for internal usage, so it would not open a new window,
 					// but rather open a new channel tab
-					linkNode.addEventHandler( 'click', 
+					linkNode.addEventListener( 'click', 
 						function(){ alert( 'This feature is still in progress :)' ); 
 							return false; 
 						} );
@@ -193,3 +193,4 @@ TextProcessor.prototype.formatTime = function( then, now ) {
 textProcessor = new TextProcessor();
 textProcessor.add( TextProcessor.prototype.linebreak );
 textProcessor.add( TextProcessor.prototype.linkify );
+textProcessor.add( TextProcessor.prototype.linkifyInvite );
