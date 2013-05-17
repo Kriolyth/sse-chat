@@ -134,7 +134,7 @@ TextProcessor.prototype.linkifyInvite = function( node ) {
 			for ( var i = 1; i < chunks.length; ++i ) {
 				if ( urlRegex.test( chunks[i] ) ) {
 					var linkNode = document.createElement( 'a' );
-					var linkHref = document.URL + '/i/' + 
+					var linkHref = document.URL + '?i=' + 
 						chunks[i].substring( String('invite://'.length) );
 					linkNode.appendChild( document.createTextNode( chunks[i] ) );
 					linkNode.setAttribute( 'href', linkHref );
