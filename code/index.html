@@ -3,178 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <title>Help on help</title>
-  <script type="text/javascript">
-	var chatSession = { id: 0, userId: 0, name: '' };
-	var channels = {};
-	var active_chan = null;
-	var server_host = '/sse-chat/server/';
-	var msgHandlers = [];
-	var default_title;
-	var msg_counter = 0;
-	var is_active = true;
-	
-	function presentLoginForm() {
-		var form = document.getElementById('loginForm');
-		form.elements['id'].value = Settings.userId;
-		form.elements['name'].value = Settings.name;
-	}
-	
-	
-	function authOk( response ) {
-		if ( !response['session'] ) return;
-		chatSession.id = response.session;
-		chatSession.userId = response.userId;
-		chatSession.name = response.username;
-		Settings.userId = chatSession.userId;
-		Settings.name = chatSession.name;
-		
-		Settings.save();
-		
-		ui.init();
-		switchPanel( 'chat' );
-		// no UI code should be called directly beyond this point
-		
-		var proc = new Processor();
-		proc.userMsg = onUserMessage;
-		proc.sysMsg = onSysMessage;
-		proc.serviceMsg = onSrvMessage;
-		var handlers = MsgHandlers();
-		handlers.register( proc );
-		
-		// Only start listener after we authorized
-		var listener = new Listener( proc );
-		listener.listen( server_host + 'session?id=' + chatSession.id );
-		
-		// add offscreen message processing
-		ui.offscreenHandler = OffscreenMsgHandler( ui );
-	}
-	function authErr( response ) {
-		chatSession.id = 0;
-		
-		switchPanel( 'login' );
-		showLoginError( response.message );
-	}
-
-	function switchPanel( panel ) {
-		switch( panel ) {
-			case 'chat':
-				ui.show();
-				document.getElementById( 'login' ).style.visibility = 'hidden';
-				break;
-			case 'login':
-				ui.hide();
-				document.getElementById( 'login' ).style.visibility = 'visible';
-				break;
-		}
-	}
-	
-	function submitAddChannel() {
-		var form = document.getElementById( 'tab-group' );
-		var formData = convertFormToObject( form );
-		var request_object = { id: chatSession.id, cmd: 'newchan', name: formData.chan_name };
-		post( 'cmd/', request_object, function _AddChanCmdCallback(status,cmd) {
-				switch( status ) {
-					case 204:
-						document.getElementById( 'newtabchk' ).checked = false;
-						break;
-				}
-			} );
-	}
-	
-	function submitLogin( form ) {
-		var formData = convertFormToObject( form );
-		// test if name was changed, so that id will have to be reset
-		if ( formData.id != 0 && formData.name != Settings.name )
-			formData.id = 0;
-		var auth = new Auth( { id: formData.id, name: formData.name, isGuest: true } );
-		auth.ok = authOk;
-		auth.err = authErr;
-		auth.auth( server_host + 'auth' );
-		
-		return false;
-	}
-	
-	function showLoginError( message ) {
-		var msgNode = document.createTextNode( message );
-		var errorNode = document.getElementById( 'loginError' );
-		if ( errorNode.hasChildNodes() ) {
-			errorNode.replaceChild( msgNode, errorNode.firstChild );
-		} else {
-			errorNode.appendChild( msgNode );
-		}
-	}
-	
-	function onSrvMessage( msg ) {
-		switch( msg.event ) {
-			case 'invite_result':
-				if ( !msg.data.processed )
-					alert( msg.data.msg );
-				break;
-			default:
-				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
-		}
-	}
-	
-	function onSysMessage( msg ) {
-		var ch = channels[ msg.channel ];
-		if ( ch === undefined ) return;
-		
-		switch( msg.command ) {
-			case 'enter':
-			case 'exit':
-			case 'info':
-				ch[ msg.command ]( msg );
-				onNewMessage( ch );
-				break;
-			default:
-				console.log( 'Unknown channel message: ' + JSON.stringify( msg ) );
-		}
-	}
-	
-	function onUserMessage( msg ) {
-		var ch = channels[ msg.channel ];
-		if ( ch === undefined ) return;
-
-		if ( msg['uid'] && msg.uid == chatSession.userId )
-			msg.ownmsg = true;
-		if ( msg['guest'] )
-			msg.guestmsg = true;
-		ch.addMessage( msg );
-		onNewMessage( ch );
-	}
-	
-	function sendTextMessage() {
-		if ( !ui,actuveTabId()\ ) return false;
-		var msg_el = document.getElementById( 'message' );
-		if ( !msg_el ) return false;
-		var message = (new String( msg_el.value)).trim();
-		if ( !message ) return false;
-		
-		var msg_object = { id: chatSession.id, chan: ui.activeTabId(), msg: message };
-		controller.post( 'message/', msg_object );
-		
-		ui.clearTextBox();
-		return false;
-	};	
-	
-    function onDomReady() {
-		Settings.load();
-			//auth();
-		presentLoginForm();
-		
-		document.getElementById('message').onkeypress = function _SendMsg(event) {
-				// send with "Enter", newline with "Shift+Enter"
-				if ( event.keyCode == 10 || ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey ) ) { 
-					return sendTextMessage();
-				}
-				return true;
-			};
-	}
-
-    window.onload = onDomReady;
-
-	
-  </script>
   <style type="text/css">
 	html * { font-family: Trebuchet MS; font-size: 12pt }
 	fieldset { border: none; padding: 0em; margin: 0em }
@@ -194,7 +22,6 @@
 	}
     #msgs > section {
 		display: block;
-		/* position: relative; */
     }
 	#msgs section {}
 	#msgs aside { font-style: italic }
@@ -239,7 +66,7 @@
 				<input type="checkbox" class="switch" id="newtabchk"/>
 				<label class="unchecked" for="newtabchk">+</label>
 				<label class="checked">Имя:<input type="text" name="chan_name" size="16" maxlength="16" value="" /></label>
-				<input class="checked" type="submit" value="Создать" onclick="submitAddChannel(); return false;" />
+				<input class="checked" type="submit" id="sendAddChan" value="Создать" />
 				<label class="checked" for="newtabchk">&lt;</label>
 			</span>
 		</fieldset>
@@ -249,7 +76,7 @@
 		<table id="input-table"><tr>
 		<td>Controls</td>
 		<td><textarea id="message"></textarea></td>
-		<td><button type="button" onclick="sendTextMessage();">Send</button></td>
+		<td><button type="button" id="sendMsgBtn">Send</button></td>
 		
 		</tr></table>
 	</div>
@@ -270,10 +97,67 @@
 		
 	</div>
 	
+	<script type="text/javascript">
+	var server_host = '/sse-chat/server/';
+	
+	function presentLoginForm() {
+		var form = document.getElementById('loginForm');
+		form.elements['id'].value = Settings.userId;
+		form.elements['name'].value = Settings.name;
+	}
+	
+	function onAuthOk( session ) {
+		Settings.userId = session.userId;
+		Settings.name = session.name;
+		
+		Settings.save();
+	}
+	function authErr( response ) {
+		chatSession.id = 0;
+		
+		ui.switchPanel( 'login' );
+		showLoginError( response.message );
+	}
+
+	
+	function submitLogin( form ) {
+		var formData = convertFormToObject( form );
+		// test if name was changed, so that id will have to be reset
+		if ( formData.id != 0 && formData.name != Settings.name )
+			formData.id = 0;
+		var auth = new Auth( { id: formData.id, name: formData.name, isGuest: true } );
+		auth.ok = authOk;
+		auth.err = authErr;
+		auth.auth( server_host + 'auth' );
+		
+		return false;
+	}
+	
+	function showLoginError( message ) {
+		var msgNode = document.createTextNode( message );
+		var errorNode = document.getElementById( 'loginError' );
+		if ( errorNode.hasChildNodes() ) {
+			errorNode.replaceChild( msgNode, errorNode.firstChild );
+		} else {
+			errorNode.appendChild( msgNode );
+		}
+	}
+	
+    function onDomReady() {
+		Settings.load();
+		presentLoginForm();
+		controller.on( 'auth ok', onAuthOk );
+	}
+
+    window.onload = onDomReady;
+	
+	</script>
 	<script type="text/javascript" src="date.format.js"></script>
 	<script type="text/javascript" src="client/settings.js"></script>
 	<script type="text/javascript" src="client/auth.js"></script>
 	<script type="text/javascript" src="client/channel.js"></script>
+	<script type="text/javascript" src="client/controller.js"></script>
+	<script type="text/javascript" src="client/controller-protocol.js"></script>
 	<script type="text/javascript" src="client/listener.js"></script>
 	<script type="text/javascript" src="client/processor.js"></script>
 	<script type="text/javascript" src="client/textproc.js"></script>

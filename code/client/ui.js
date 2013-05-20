@@ -110,7 +110,14 @@ function UI() {
 	}
 	
 	function onChannelSwitch( to_channel ) {
+		if ( activeTab == to_channel.id ) 
+			return;
+		
 		activeTab = to_channel.id;
+		var el = document.getElementById( 'tab-group' );
+		if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
+			setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
+		}
 			
 		var el = document.getElementById( 'msgs' );		
 		if ( el.hasChildNodes() )
@@ -123,6 +130,31 @@ function UI() {
 			scrollToLastMessage();
 	}
 	
+	function sendTextMessage() {
+		if ( !activeTab ) return;
+		var msg_el = document.getElementById( 'message' );
+		if ( !msg_el ) return;
+		var message = (new String( msg_el.value)).trim();
+		if ( !message ) return;
+		
+		controller.sendMsg( activeTab, message );
+		
+		document.getElementById( 'message' ).value = '';
+		return;
+	};
+	
+	function submitAddChannel() {
+		var form = document.getElementById( 'tab-group' );
+		var formData = convertFormToObject( form );
+		controller.sendAddChannel( name, function _AddChanCmdCallback(status,cmd) {
+				switch( status ) {
+					case 204:
+						document.getElementById( 'newtabchk' ).checked = false;
+						break;
+				}
+			}
+		);
+	}
 	
 	return {
 		init: function() {
@@ -131,6 +163,24 @@ function UI() {
 			controller.on( 'chat message', onNewMessage, 'ui' );
 			controller.on( 'join channel', updateTabs, 'ui' );
 			//controller.on( 'leave channel', updateTabs, 'ui' );
+			
+			document.getElementById( 'sendMsgBtn' ).onClick = function _btnSendMsgClick(){ 
+				sendTextMessage();
+				return false;
+			};
+			document.getElementById( 'submitAddChannel' ).onClick = function _btnAddChanClick(){ 
+				submitAddChannel();
+				return false;
+			};
+			
+			document.getElementById('message').onkeypress = function _SendMsg(event) {
+				// send with "Enter", newline with "Shift+Enter"
+				if ( event.keyCode == 10 || ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey ) ) { 
+					sendTextMessage();
+					return false;
+				}
+				return true;
+			};
 		},
 		
 		show: function() {
@@ -156,8 +206,17 @@ function UI() {
 				( sufix != '' ? ' | ' + suffix : '' );
 		},
 		
-		clearTextBox: function() {
-			document.getElementById( 'message' ).value = '';
+		switchPanel: function( panel ) {
+			switch( panel ) {
+				case 'chat':
+					show();
+					document.getElementById( 'login' ).style.visibility = 'hidden';
+					break;
+				case 'login':
+					hide();
+					document.getElementById( 'login' ).style.visibility = 'visible';
+					break;
+			}
 		}
 		
 		

@@ -1,4 +1,5 @@
 function Controller() {
+	this.chatSession = { id: 0, userId: 0, name: '' };
 	this.channels = [];
 	this.listener = null;
 	this.events = new EventEmitter();
@@ -6,7 +7,7 @@ function Controller() {
 }
 
 Controller.prototype.switchChannel = function( id ) {
-	if ( channels[id] !== undefined ) {
+	if ( this.channels[id] !== undefined ) {
 		this.activeChan = id;
 		
 		events.emit( 'channel switch', channels[id] );
@@ -30,6 +31,35 @@ Controller.prototype.post = function( url, msg_object, status_cb ) {
 	};
 	// Message text is sent in POST body
 	xhr.send( encodeObject( msg_object ) );
+}
+
+Controller.prototype.sendMessage( channel, msg ) {
+	var msg_object = { id: this.chatSession.id, chan: channel, msg: msg };
+	this.post( 'message/', msg_object );
+}
+
+Controller.prototype.authSuccess( response ) {
+	if ( !response['session'] ) return;
+	this.chatSession.id = response.session;
+	this.chatSession.userId = response.userId;
+	this.chatSession.name = response.username;
+	this.emit( 'auth ok', this.chatSession );
+	
+	ui.init();
+	
+	// this might be a bit wrong; we may have a need for separate
+	// "logon" ui
+	ui.switchPanel( 'chat' );
+
+	controller_extend_protocol.call( this );
+	
+	// Only start listener after we authorized
+	this.listener = new Listener( this.processor );
+	this.listener.listen( server_host + 'session?id=' + this.chatSession.id );
+	
+	// add offscreen message processing
+	ui.offscreenHandler = OffscreenMsgHandler( ui );
+
 }
 
 function encodeObject(data) {
