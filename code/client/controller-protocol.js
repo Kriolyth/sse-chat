@@ -80,7 +80,6 @@ function controller_extend_protocol() {
 		this.emit( 'chat message', ch );
 	}
 	
-	this.processor = new Processor();
 	this.processor.userMsg = this.onUserMessage;
 	this.processor.sysMsg = this.onSysMessage;
 	this.processor.serviceMsg = this.onSrvMessage;

@@ -51,10 +51,12 @@ Controller.prototype.authSuccess( response ) {
 	// "logon" ui
 	ui.switchPanel( 'chat' );
 
+	this.processor = new Processor();
+	this.listener = new Listener( this.processor );
+	
 	controller_extend_protocol.call( this );
 	
-	// Only start listener after we authorized
-	this.listener = new Listener( this.processor );
+	// Only start listener after we authorized and set
 	this.listener.listen( server_host + 'session?id=' + this.chatSession.id );
 	
 	// add offscreen message processing
