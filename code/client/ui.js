@@ -172,6 +172,10 @@ function UI() {
 				submitAddChannel();
 				return false;
 			};
+			document.getElementById( 'tab-group' ).onsubmit = function _frmAddChanSubmit(){ 
+				submitAddChannel();
+				return false;
+			};
 			
 			document.getElementById('message').onkeypress = function _SendMsg(event) {
 				// send with "Enter", newline with "Shift+Enter"
