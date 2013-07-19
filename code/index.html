@@ -3,371 +3,6 @@
 <head>
   <meta charset="utf-8" />
   <title>Help on help</title>
-  <script type="text/javascript" src="date.format.js"></script>
-  <script type="text/javascript" src="client/settings.js"></script>
-  <script type="text/javascript" src="client/auth.js"></script>
-  <script type="text/javascript" src="client/channel.js"></script>
-  <script type="text/javascript" src="client/listener.js"></script>
-  <script type="text/javascript" src="client/processor.js"></script>
-  <script type="text/javascript" src="client/textproc.js"></script>
-  <script type="text/javascript">
-	var chatSession = { id: 0, userId: 0, name: '' };
-	var channels = {};
-	var active_chan = null;
-	var server_host = '/sse-chat/server/';
-	var msgHandlers = [];
-	var default_title;
-	var msg_counter = 0;
-	var is_active = true;
-	
-	function presentLoginForm() {
-		var form = document.getElementById('loginForm');
-		form.elements['id'].value = Settings.userId;
-		form.elements['name'].value = Settings.name;
-	}
-	
-	
-	function authOk( response ) {
-		if ( !response['session'] ) return;
-		chatSession.id = response.session;
-		chatSession.userId = response.userId;
-		chatSession.name = response.username;
-		Settings.userId = chatSession.userId;
-		Settings.name = chatSession.name;
-		
-		switchPanel( 'chat' );
-		
-		Settings.save();
-		
-		var proc = new Processor();
-		proc.userMsg = onUserMessage;
-		proc.sysMsg = onSysMessage;
-		proc.serviceMsg = onSrvMessage;
-		
-		// Only start listener after we authorized
-		var listener = new Listener( proc );
-		listener.listen( server_host + 'session?id=' + chatSession.id );
-		
-		window.onfocus = onFocus;
-		window.onblur = onBlur;
-		document.addEventListener( 'visibilitychange', visibilityChange );
-	}
-	function authErr( response ) {
-		chatSession.id = 0;
-		
-		switchPanel( 'login' );
-		showLoginError( response.message );
-	}
-
-	function encodeObject(data) {
-		if(!data) return false;
-		var pairs = [],
-			regexp = /%20/g;
-
-		for(var name in data) {
-			var value = data[name].toString(),
-			pair = encodeURIComponent(name).replace(regexp, '+') + '=' + encodeURIComponent(value).replace(regexp, '+');
-
-			pairs.push(pair);
-		}
-
-		return pairs.join('&');
-	}
-	function convertFormToObject( form ) {
-		var obj = {};
-		for ( var i in form.elements ) {
-			if ( form.elements[i]['name'] !== undefined && form.elements[i].name != '' )
-				obj[ form.elements[i].name ] = form.elements[i].value;
-		}
-		return obj;
-	}
-	
-	function switchPanel( panel ) {
-		switch( panel ) {
-			case 'chat':
-				document.getElementById( 'chat' ).style.visibility = 'visible';
-				document.getElementById( 'tab-group' ).style.visibility = 'visible';
-				document.getElementById( 'login' ).style.visibility = 'hidden';
-				break;
-			case 'login':
-				document.getElementById( 'chat' ).style.visibility = 'hidden';
-				document.getElementById( 'tab-group' ).style.visibility = 'hidden';
-				document.getElementById( 'login' ).style.visibility = 'visible';
-				break;
-		}
-	}
-	
-	function submitAddChannel() {
-		var form = document.getElementById( 'tab-group' );
-		var formData = convertFormToObject( form );
-		var request_object = { id: chatSession.id, cmd: 'newchan', name: formData.chan_name };
-		post( 'cmd/', request_object, function _AddChanCmdCallback(status,cmd) {
-				switch( status ) {
-					case 204:
-						document.getElementById( 'newtabchk' ).checked = false;
-						break;
-				}
-			} );
-	}
-	
-	function submitLogin( form ) {
-		var formData = convertFormToObject( form );
-		// test if name was changed, so that id will have to be reset
-		if ( formData.id != 0 && formData.name != Settings.name )
-			formData.id = 0;
-		var auth = new Auth( { id: formData.id, name: formData.name, isGuest: true } );
-		auth.ok = authOk;
-		auth.err = authErr;
-		auth.auth( server_host + 'auth' );
-		
-		return false;
-	}
-	
-	function showLoginError( message ) {
-		var msgNode = document.createTextNode( message );
-		var errorNode = document.getElementById( 'loginError' );
-		if ( errorNode.hasChildNodes() ) {
-			errorNode.replaceChild( msgNode, errorNode.firstChild );
-		} else {
-			errorNode.appendChild( msgNode );
-		}
-	}
-	
-	function onSrvMessage( msg ) {
-		switch( msg.event ) {
-			case 'join':
-				var ch = channels[ msg.channel ];
-				if ( ch === undefined ) {
-					ch = new Channel( msg.data );
-					channels[ ch.id ] = ch;
-				}
-				ch.join( msg );
-				updateChannelTabs();
-				if ( active_chan == null ) {
-					switchChannel( ch.id );
-					var el = document.getElementById( 'tab-group' );
-					if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
-						setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
-					}
-				}
-				break;
-			case 'leave':
-				var ch = channels[ msg.channel ];
-				if ( ch !== undefined )
-					ch.leave();
-				break;
-			case 'mychan':
-				var ch = channels[ msg.data.channel.id ];
-				if ( ch === undefined ) {
-					ch = new Channel( msg.data.channel );
-					channels[ ch.id ] = ch;
-				} else {
-					// update channel information
-					ch.name = msg.data.channel.name;
-					ch.title = msg.data.channel.title;
-				}
-				updateChannelTabs();
-				if ( active_chan == null ) {
-					switchChannel( ch.id );	
-					var el = document.getElementById( 'tab-group' );
-					if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
-						setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
-					}
-				}
-				break;
-			case 'invite_result':
-				if ( !msg.data.processed )
-					alert( msg.data.msg );
-				break;
-			default:
-				console.log( 'Unknown service message: ' + JSON.stringify( msg ) );
-		}
-	}
-	
-	function onSysMessage( msg ) {
-		var ch = channels[ msg.channel ];
-		if ( ch === undefined ) return;
-		
-		switch( msg.command ) {
-			case 'enter':
-			case 'exit':
-			case 'info':
-				ch[ msg.command ]( msg );
-				onNewMessage( ch );
-				break;
-			default:
-				console.log( 'Unknown channel message: ' + JSON.stringify( msg ) );
-		}
-	}
-	
-	function onUserMessage( msg ) {
-		var ch = channels[ msg.channel ];
-		if ( ch === undefined ) return;
-
-		if ( msg['uid'] && msg.uid == chatSession.userId )
-			msg.ownmsg = true;
-		if ( msg['guest'] )
-			msg.guestmsg = true;
-		ch.addMessage( msg );
-		onNewMessage( ch );
-	}
-	
-	function onNewMessage( channel ) {
-		if ( active_chan == channel.id ) {
-			setTimeout( function() { scrollToLastMessage(); }, 0 );
-			setTimeout( function() { offscreenMsgHandler(); }, 0 );
-		}
-	}
-	
-	function scrollToLastMessage() {
-		if ( active_chan !== undefined && channels[ active_chan ] !== undefined ) {
-			//channels[ active_chan ].containerNode.lastChild.scrollIntoView();
-			var objDiv = channels[ active_chan ].containerNode.lastChild;
-			window.scrollTo( window.scrollX, objDiv.offsetTop );
-		}
-			
-	}
-	
-	function updateChannelTabs() {
-		var tabsNode = document.getElementById( 'tabs' );
-		var hasTabs = [];
-		for ( var node = tabsNode.firstChild; node != null; node = node.nextSibling ) {
-			// enlist all tabls
-			if ( node.dataset && node.dataset.channelId )
-				hasTabs.push( node.dataset.channelId );
-		}
-		
-		for ( var i in channels ) {
-			var ch = channels[ i ];
-			var currentIdx = hasTabs.indexOf( ch.id );
-			if ( currentIdx >= 0 ) {
-				hasTabs.splice( currentIdx, 1 );
-				continue;
-			}
-			
-			var newTab = document.createElement( 'label' );
-			newTab.setAttribute( 'class', 'btn' );
-			newTab.setAttribute( 'id', 'chantab_' + ch.id );
-			newTab.dataset.channelId = ch.id;
-			// <input type="radio" name="channel">
-			var opt = document.createElement( 'input' );
-			opt.setAttribute( 'name', 'channel' );
-			opt.setAttribute( 'type', 'radio' );
-			opt.setAttribute( 'value', ch.id );
-			newTab.appendChild( opt );
-			var spanNode = document.createElement( 'span' );
-			spanNode.appendChild( document.createTextNode( ch.name ) );
-			newTab.appendChild( spanNode );
-			
-			opt.addEventListener( 'change', ( function _TabClickClosure(id){ 
-				return function _TabClick(){ 
-					switchChannel(id); 
-					return false; 
-				} }
-			)( ch.id ) );
-			
-			// Insert new channel tab before the "new channel" tab
-			if ( !tabsNode.hasChildNodes() )
-				tabsNode.appendChild( newTab );
-			//else if ( tabsNode.lastChild.isEqualNode( tabsNode.firstChild ) )
-			//	tabsNode.insertBefore( newTab, tabsNode.lastChild );
-			else
-				tabsNode.insertBefore( newTab, document.getElementById( 'newchan' ) );
-		}
-		
-		// Remove all tabs that were not found in the updated list
-		for ( var i in hasTabs ) {
-			var el = document.getElementById( 'chantab_' + hasTabs[i] );
-			if ( el && el.parentNode )
-				el.parentNode.removeChild( el );
-		}
-		
-		var tabGrpNode = document.getElementById( 'tab-group' );
-		document.getElementById( 'msgs' ).style.top = tabGrpNode.offsetHeight + 'px';
-	}
-	
-	function visibilityChange() {
-		if ( !( document.hidden || !is_active ) ) {
-			document.title = default_title;
-			msg_counter = 0;
-		} else {
-			document.title = ' | ' + default_title;
-		}
-	}
-	function onBlur() {
-		is_active = false;
-		visibilityChange();
-	};
-	function onFocus(){
-		is_active = true;
-		visibilityChange();
-	};
-	function offscreenMsgHandler() {
-		if ( document.hidden || !is_active ) {
-			++msg_counter;
-			document.title = '(' + msg_counter + ')' + ' | ' + default_title;
-		}
-	}
-	
-	function switchChannel( id ) {
-		var el = document.getElementById( 'msgs' );
-		var ch = channels[ id ];
-		if ( ch === undefined ) 
-			return;
-		active_chan = id;
-		
-		if ( el.hasChildNodes() )
-			el.removeChild( el.firstChild );
-		el.appendChild( ch.containerNode );
-	}
-	
-	function sendTextMessage() {
-		if ( !active_chan ) return false;
-		var msg_el = document.getElementById( 'message' );
-		if ( !msg_el ) return false;
-		var message = (new String( msg_el.value)).trim();
-		if ( !message ) return false;
-		
-		var msg_object = { id: chatSession.id, chan: channels[active_chan].id, msg: message };
-		post( 'message/', msg_object ); 
-		
-		document.getElementById( 'message' ).value = '';
-		return false;
-	};	
-	
-    function onDomReady() {
-		default_title = document.title;
-		Settings.load();
-			//auth();
-		presentLoginForm();
-		
-		document.getElementById('message').onkeypress = function _SendMsg(event) {
-				// send with "Enter", newline with "Shift+Enter"
-				if ( event.keyCode == 10 || ( event.keyCode == 13 && !event.ctrlKey && !event.shiftKey ) ) { 
-					return sendTextMessage();
-				}
-				return true;
-			};
-	}
-
-    window.onload = onDomReady;
-
-    function post( url, msg_object, status_cb ) {
-		var xhr = new XMLHttpRequest();
-		xhr.open( 'POST', server_host + url, true );
-		xhr.setRequestHeader( 'Content-type', 'application/x-www-form-urlencoded' );
-		xhr.onreadystatechange = function () {
-			if ( xhr.readyState === 4 ) {
-				if ( status_cb !== undefined )
-					status_cb( xhr.status, msg_object );
-				console.info( xhr.statusText + ' ' + xhr.responseText );
-			}
-		};
-		// Message text is sent in POST body
-		xhr.send( encodeObject( msg_object ) );
-    }
-	
-  </script>
   <style type="text/css">
 	html * { font-family: Trebuchet MS; font-size: 12pt }
 	fieldset { border: none; padding: 0em; margin: 0em }
@@ -387,7 +22,6 @@
 	}
     #msgs > section {
 		display: block;
-		/* position: relative; */
     }
 	#msgs section {}
 	#msgs aside { font-style: italic }
@@ -432,7 +66,7 @@
 				<input type="checkbox" class="switch" id="newtabchk"/>
 				<label class="unchecked" for="newtabchk">+</label>
 				<label class="checked">Имя:<input type="text" name="chan_name" size="16" maxlength="16" value="" /></label>
-				<input class="checked" type="submit" value="Создать" onclick="submitAddChannel(); return false;" />
+				<input class="checked" type="button" id="submitAddChannel" value="Создать" />
 				<label class="checked" for="newtabchk">&lt;</label>
 			</span>
 		</fieldset>
@@ -442,7 +76,7 @@
 		<table id="input-table"><tr>
 		<td>Controls</td>
 		<td><textarea id="message"></textarea></td>
-		<td><button type="button" onclick="sendTextMessage();">Send</button></td>
+		<td><button type="button" id="sendMsgBtn">Send</button></td>
 		
 		</tr></table>
 	</div>
@@ -463,5 +97,70 @@
 		
 	</div>
 	
+	<script type="text/javascript">
+	var server_host = '/sse-chat/server/';
+	
+	function presentLoginForm() {
+		var form = document.getElementById('loginForm');
+		form.elements['id'].value = Settings.userId;
+		form.elements['name'].value = Settings.name;
+	}
+	
+	function onAuthOk( session ) {
+		Settings.userId = session.userId;
+		Settings.name = session.name;
+		
+		Settings.save();
+	}
+	function authErr( response ) {
+		showLoginError( response.message );
+	}
+
+	
+	function submitLogin( form ) {
+		var formData = convertFormToObject( form );
+		// test if name was changed, so that id will have to be reset
+		if ( formData.id != 0 && formData.name != Settings.name )
+			formData.id = 0;
+		var auth = new Auth( { id: formData.id, name: formData.name, isGuest: true } );
+		auth.err = authErr;
+		controller.setAuth( auth );
+		controller.doAuth();
+		
+		return false;
+	}
+	
+	function showLoginError( message ) {
+		var msgNode = document.createTextNode( message );
+		var errorNode = document.getElementById( 'loginError' );
+		if ( errorNode.hasChildNodes() ) {
+			errorNode.replaceChild( msgNode, errorNode.firstChild );
+		} else {
+			errorNode.appendChild( msgNode );
+		}
+	}
+	
+    function onDomReady() {
+		Settings.load();
+		presentLoginForm();
+		controller.on( 'auth ok', onAuthOk );
+	}
+
+    window.onload = onDomReady;
+	
+	</script>
+	<script type="text/javascript" src="date.format.js"></script>
+	<script type="text/javascript" src="client/settings.js"></script>
+	<script type="text/javascript" src="client/emitter.js"></script>
+	<script type="text/javascript" src="client/auth.js"></script>
+	<script type="text/javascript" src="client/channel.js"></script>
+	<script type="text/javascript" src="client/controller.js"></script>
+	<script type="text/javascript" src="client/controller-protocol.js"></script>
+	<script type="text/javascript" src="client/listener.js"></script>
+	<script type="text/javascript" src="client/controller.js"></script>
+	<script type="text/javascript" src="client/ui.js"></script>
+	<script type="text/javascript" src="client/processor.js"></script>
+	<script type="text/javascript" src="client/textproc.js"></script>
+
 </body>
 </html>
