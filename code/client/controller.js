@@ -10,7 +10,7 @@ Controller.prototype.switchChannel = function( id ) {
 	if ( this.channels[id] !== undefined ) {
 		this.activeChan = id;
 		
-		events.emit( 'channel switch', channels[id] );
+		this.events.emit( 'channel switch', this.channels[id] );
 	}
 }
 
@@ -33,17 +33,17 @@ Controller.prototype.post = function( url, msg_object, status_cb ) {
 	xhr.send( encodeObject( msg_object ) );
 }
 
-Controller.prototype.sendMessage( channel, msg ) {
+Controller.prototype.sendMessage = function( channel, msg ) {
 	var msg_object = { id: this.chatSession.id, chan: channel, msg: msg };
 	this.post( 'message/', msg_object );
 }
 
-Controller.prototype.authSuccess( response ) {
+Controller.prototype.authSuccess = function( response ) {
 	if ( !response['session'] ) return;
 	this.chatSession.id = response.session;
 	this.chatSession.userId = response.userId;
 	this.chatSession.name = response.username;
-	this.emit( 'auth ok', this.chatSession );
+	this.events.emit( 'auth ok', this.chatSession );
 	
 	ui.init();
 	
@@ -62,6 +62,14 @@ Controller.prototype.authSuccess( response ) {
 	// add offscreen message processing
 	ui.offscreenHandler = OffscreenMsgHandler( ui );
 
+}
+
+Controller.prototype.setAuth = function( auth ) {
+	this.auth = auth;
+	this.auth.ok = (function(c){return function(resp){ c.authSuccess(resp); }; })(this);
+}
+Controller.prototype.doAuth = function() {
+	this.auth.auth( server_host + 'auth' );
 }
 
 function encodeObject(data) {

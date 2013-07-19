@@ -34,7 +34,7 @@ var CreateInviteCmd = ( function() {
 		
 		// create new Invite
 		var opts = { use_limit: 1, expire_date: (new Date()).getTime() + 14*86400 };
-		var args = query.msg.substr.substring( String('/mkinvite').length + 1 );
+		var args = query.msg.substring( String('/mkinvite').length + 1 );
 		
 		if ( args.length > 0 ) {
 			try {

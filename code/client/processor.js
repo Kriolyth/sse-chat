@@ -9,10 +9,10 @@ function Processor() {
 	this.channelHandlers = [];
 }
 
-Processor.prototype.setServiceHandler( ev, f ) {
+Processor.prototype.setServiceHandler = function( ev, f ) {
 	this.serviceHandlers[ ev ] = f;
 }
-Processor.prototype.setChannelHandler( cmd, f ) {
+Processor.prototype.setChannelHandler = function( cmd, f ) {
 	this.channelHandlers[ cmd ] = f;
 }
 
@@ -27,10 +27,10 @@ Processor.prototype.handleServiceMsg = function( raw ) {
 }
 Processor.prototype.handleChannelMsg = function( raw ) {
 	var msg = { channel: raw.channel, command: raw.cmd, data: raw.msg };
-	if ( this.channelHandlers[ msg.channel ] === undefined )
+	if ( this.channelHandlers[ msg.command ] === undefined )
 		this.sysMsg( msg );
 	else
-		this.channelHandlers[ msg.channel ]( msg );
+		this.channelHandlers[ msg.command ]( msg );
 }
 Processor.prototype.handleUserMsg = function( raw ) {
 	if ( raw['ts'] !== undefined ) {

@@ -15,9 +15,9 @@ function controller_extend_protocol() {
 			this.channels[ ch.id ] = ch;
 		}
 		ch.join( msg );
-		this.emit( 'join channel' );
+		this.events.emit( 'join channel' );
 		if ( this.channels.length == 1 )
-			this.emit( 'channel switch', ch );
+			this.events.emit( 'channel switch', ch );
 	}
 	
 	this.onSrvLeaveMsg = function( msg ) {
@@ -36,9 +36,9 @@ function controller_extend_protocol() {
 			ch.name = msg.data.channel.name;
 			ch.title = msg.data.channel.title;
 		}
-		this.emit( 'join channel' );
+		this.events.emit( 'join channel' );
 		if ( this.channels.length == 1 )
-			this.emit( 'channel switch', ch );
+			this.events.emit( 'channel switch', ch );
 	}
 
 	this.onSrvMessage = function( msg ) {
@@ -52,20 +52,17 @@ function controller_extend_protocol() {
 		}
 	}
 	
-	this.onSysMessage = function( msg ) {
+	this.onChanMsg = function( msg ) {
 		var ch = this.channels[ msg.channel ];
 		if ( ch === undefined ) return;
 		
-		switch( msg.command ) {
-			case 'enter':
-			case 'exit':
-			case 'info':
-				ch[ msg.command ]( msg );
-				this.emit( 'chat message', ch );
-				break;
-			default:
-				console.log( 'Unknown channel message: ' + JSON.stringify( msg ) );
-		}
+		// enter, exit, info
+		ch[ msg.command ]( msg );
+		this.events.emit( 'chat message', ch );
+	}
+	
+	this.onSysMessage = function( msg ) {
+		console.log( 'Unknown channel message: ' + JSON.stringify( msg ) );
 	}
 	
 	this.onUserMessage = function( msg ) {
@@ -77,11 +74,23 @@ function controller_extend_protocol() {
 		if ( msg['guest'] )
 			msg.guestmsg = true;
 		ch.addMessage( msg );
-		this.emit( 'chat message', ch );
+		this.events.emit( 'chat message', ch );
 	}
-	
-	this.processor.userMsg = this.onUserMessage;
-	this.processor.sysMsg = this.onSysMessage;
-	this.processor.serviceMsg = this.onSrvMessage;
+
+	var bind = function(obj, method){
+		return (function(o){ return function(){ 
+			var args = Array.prototype.slice.call( arguments );
+			method.apply(o, args);
+		} } )(obj);
+	};
+	this.processor.setServiceHandler( 'join', bind( this, this.onSrvJoinMsg ) );
+	this.processor.setServiceHandler( 'leave', bind( this, this.onSrvLeaveMsg ) );
+	this.processor.setServiceHandler( 'mychan', bind( this, this.onSrvMyChanMsg ) );
+	this.processor.setChannelHandler( 'enter', bind( this, this.onChanMsg ) );
+	this.processor.setChannelHandler( 'exit', bind( this, this.onChanMsg ) );
+	this.processor.setChannelHandler( 'info', bind( this, this.onChanMsg ) );
+	this.processor.userMsg = bind( this, this.onUserMessage );
+	this.processor.sysMsg = bind( this, this.onSysMessage );
+	this.processor.serviceMsg = bind( this, this.onSrvMessage );
 	
 }

@@ -114,15 +114,15 @@ function UI() {
 			return;
 		
 		activeTab = to_channel.id;
-		var el = document.getElementById( 'tab-group' );
-		if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
-			setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
-		}
+		//var el = document.getElementById( 'tab-group' );
+		//if ( el && el.elements['tabs'] && el.elements.tabs.elements['channel'] ) {
+		//	setTimeout( function(){ document.getElementById( 'tab-group' ).elements.tabs.elements[0].click(); }, 0 );
+		//}
 			
 		var el = document.getElementById( 'msgs' );		
 		if ( el.hasChildNodes() )
 			el.removeChild( el.firstChild );
-		el.appendChild( ch.containerNode );
+		el.appendChild( to_channel.containerNode );
 	}
 	
 	function onNewMessage( to_channel ) {
@@ -137,7 +137,7 @@ function UI() {
 		var message = (new String( msg_el.value)).trim();
 		if ( !message ) return;
 		
-		controller.sendMsg( activeTab, message );
+		controller.sendMessage( activeTab, message );
 		
 		document.getElementById( 'message' ).value = '';
 		return;
@@ -146,7 +146,7 @@ function UI() {
 	function submitAddChannel() {
 		var form = document.getElementById( 'tab-group' );
 		var formData = convertFormToObject( form );
-		controller.sendAddChannel( name, function _AddChanCmdCallback(status,cmd) {
+		controller.sendAddChannel( formData.chan_name, function _AddChanCmdCallback(status,cmd) {
 				switch( status ) {
 					case 204:
 						document.getElementById( 'newtabchk' ).checked = false;
@@ -164,11 +164,11 @@ function UI() {
 			controller.on( 'join channel', updateTabs, 'ui' );
 			//controller.on( 'leave channel', updateTabs, 'ui' );
 			
-			document.getElementById( 'sendMsgBtn' ).onClick = function _btnSendMsgClick(){ 
+			document.getElementById( 'sendMsgBtn' ).onclick = function _btnSendMsgClick(){ 
 				sendTextMessage();
 				return false;
 			};
-			document.getElementById( 'submitAddChannel' ).onClick = function _btnAddChanClick(){ 
+			document.getElementById( 'submitAddChannel' ).onclick = function _btnAddChanClick(){ 
 				submitAddChannel();
 				return false;
 			};
@@ -200,20 +200,22 @@ function UI() {
 			return activeTab;
 		},
 		
-		amendTitle: function( prefix, suffix == '' ) {
+		amendTitle: function( prefix, suffix ) {
+			if ( suffix === undefined )
+				suffix = '';
 			document.title = ( prefix != '' ? prefix + ' | ' : '' ) + 
 				defaultTitle +
-				( sufix != '' ? ' | ' + suffix : '' );
+				( suffix != '' ? ' | ' + suffix : '' );
 		},
 		
 		switchPanel: function( panel ) {
 			switch( panel ) {
 				case 'chat':
-					show();
+					this.show();
 					document.getElementById( 'login' ).style.visibility = 'hidden';
 					break;
 				case 'login':
-					hide();
+					this.hide();
 					document.getElementById( 'login' ).style.visibility = 'visible';
 					break;
 			}

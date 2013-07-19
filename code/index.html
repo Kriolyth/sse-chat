@@ -66,7 +66,7 @@
 				<input type="checkbox" class="switch" id="newtabchk"/>
 				<label class="unchecked" for="newtabchk">+</label>
 				<label class="checked">Имя:<input type="text" name="chan_name" size="16" maxlength="16" value="" /></label>
-				<input class="checked" type="submit" id="sendAddChan" value="Создать" />
+				<input class="checked" type="button" id="submitAddChannel" value="Создать" />
 				<label class="checked" for="newtabchk">&lt;</label>
 			</span>
 		</fieldset>
@@ -113,9 +113,6 @@
 		Settings.save();
 	}
 	function authErr( response ) {
-		chatSession.id = 0;
-		
-		ui.switchPanel( 'login' );
 		showLoginError( response.message );
 	}
 
@@ -126,9 +123,9 @@
 		if ( formData.id != 0 && formData.name != Settings.name )
 			formData.id = 0;
 		var auth = new Auth( { id: formData.id, name: formData.name, isGuest: true } );
-		auth.ok = authOk;
 		auth.err = authErr;
-		auth.auth( server_host + 'auth' );
+		controller.setAuth( auth );
+		controller.doAuth();
 		
 		return false;
 	}
@@ -154,11 +151,14 @@
 	</script>
 	<script type="text/javascript" src="date.format.js"></script>
 	<script type="text/javascript" src="client/settings.js"></script>
+	<script type="text/javascript" src="client/emitter.js"></script>
 	<script type="text/javascript" src="client/auth.js"></script>
 	<script type="text/javascript" src="client/channel.js"></script>
 	<script type="text/javascript" src="client/controller.js"></script>
 	<script type="text/javascript" src="client/controller-protocol.js"></script>
 	<script type="text/javascript" src="client/listener.js"></script>
+	<script type="text/javascript" src="client/controller.js"></script>
+	<script type="text/javascript" src="client/ui.js"></script>
 	<script type="text/javascript" src="client/processor.js"></script>
 	<script type="text/javascript" src="client/textproc.js"></script>
 
